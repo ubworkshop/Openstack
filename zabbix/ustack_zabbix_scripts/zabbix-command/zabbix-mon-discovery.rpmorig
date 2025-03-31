@@ -1,0 +1,13 @@
+#!/usr/bin/python
+import commands
+import json
+
+
+if __name__ == "__main__":
+    (status, ceph_data) = commands.getstatusoutput('ceph -s -f json')
+    ceph_data = json.loads(ceph_data)
+    time_checks = ceph_data['health']['timechecks']
+    data = []
+    for time_check in time_checks['mons']:
+        data.append({"{#MON_NAME}": time_check['name']})
+    print json.dumps({"data": data})

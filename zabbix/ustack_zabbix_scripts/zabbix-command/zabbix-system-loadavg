@@ -1,0 +1,49 @@
+#!/bin/bash
+#####################################
+##  get loadavg script for zabbix 
+##     written by zhangxian
+##      on 2016-02-08 13:30
+####################################
+
+
+loadavg_cmd="timeout 5 /usr/bin/uptime"
+
+function usage(){
+  echo "Usage: sh $0 "
+  echo "       show the loadavg at last 5 minutes"
+  echo "       version:        show the version"
+  echo "       help:           show the usage"
+  echo "Example: sh $0"
+  echo "Written by Zhangxian"
+  exit 0;
+}
+
+function version(){
+  echo "Version 2.0"
+  exit 0;
+}
+
+function help(){
+  usage;
+}
+
+function get_loadavg_data() {
+  loadavg_result=$(${loadavg_cmd} 2>/dev/null)
+  if [ $? -ne 0 ];then
+    echo "Error,get loadavg timeout(5s)!"
+    exit 1;
+  fi
+}
+
+function get_system_loadavg() {  
+  local system_loadavg=0.0
+  local system_loadavg=$(echo "${loadavg_result}"|grep -Eo "load average: .*"|awk '{print $3}'|sed 's/,//g')
+  if [ -z "${system_loadavg}" ];then
+    echo "-1";
+    exit 1;
+  fi
+  echo "${system_loadavg}";
+}
+
+get_loadavg_data;
+get_system_loadavg;

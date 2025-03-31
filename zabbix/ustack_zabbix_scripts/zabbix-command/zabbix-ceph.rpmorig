@@ -1,0 +1,115 @@
+#!/bin/bash
+#####################################
+##  ceph monitor script for zabbix 
+##     written by zhangxian
+##      on 2016-02-08 13:30
+####################################
+
+
+ceph_cmd="timeout 10 ceph -s"
+ceph_osd_cmd="timeout 10 ceph osd dump"
+
+function usage(){
+  echo "Usage: sh $0 param "
+  echo "Param: cluster.status mon.status osd.status incons.num block.num"
+  echo "       cluster.status: show the ceph cluster status [HEALTH_OK/HEALTH_WARN/HEALTH_ERROR]"
+  echo "       mon.status:     show monintor status,show the nums of down monitor,the value 0 is OK"
+  echo "       osd.status:     show the diff nums in and up osds,the value 0 is Ok"
+  echo "       incons.num:     show the inconsistent nums,the value 0 is Ok"
+  echo "       block.num:      show the block nums,the value 0 is Ok"
+  echo "       version:        show the verion"
+  echo "       help:           show the usage"
+  echo "Example: sh $0 cluster.status"
+  echo "Written by Zhangxian"
+  exit 0;
+}
+
+function version(){
+  echo "Version 2.0"
+  exit 0;
+}
+
+function help(){
+  usage;
+}
+
+function get_ceph_data() {
+  ceph_result=$(${ceph_cmd} 2>/dev/null)
+  if [ $? -ne 0 ];then
+    echo "Error,the ceph status is timeout(10s)!"
+    exit 1;
+  fi
+}
+
+function get_ceph_status_execute_time() {
+  local time=`(time -p ${ceph_cmd}) 2>&1 >/dev/null | grep real | awk '{print $2}'`
+  echo $time
+}
+
+function get_osd_data() {
+  osd_result=$(${ceph_osd_cmd} 2>/dev/null)
+  if [ $? -ne 0 ];then
+    echo "Error,the osd status is timeout(10s)!"
+    exit 1;
+  fi
+}
+
+function ceph_cluster_status() {
+  local status_result=$(echo "${ceph_result}"|grep "health")
+  local status=$(echo "${status_result}"|awk '{print $2}')
+  if [ ! -z "${status}" ];then
+    local ceph_status=$(echo "${status_result}"|grep -Eo "${status}.*")
+    echo "${ceph_status}"
+  fi
+}
+
+function ceph_monitor_status() {
+  local mon_down_num=0
+  local monitor_status=$(echo "${ceph_result}"|grep "health"|grep -Eo "[0-9]+ mons down.*")
+  if [ ! -z "${monitor_status}" ];then
+    mon_down_num=$(echo "$monitor_status" | awk '{print $1}')
+  fi
+  echo "${mon_down_num}"
+}
+
+function ceph_osd_status() {  
+  local osd_down_num=0
+  local osd_down_result=$(echo "${osd_result}"|grep "^osd\.[0-9]*[[:space:]]down")
+  if [ ! -z "${osd_down_result}" ];then
+    osd_down_num=$(echo "${osd_down_result}"|awk -F")" '{print $2}' |awk -F: '{print $1}'|uniq |wc -l) 
+  fi
+  echo "${osd_down_num}";
+}
+
+function ceph_incons_num() {
+  local incons_num=0
+  local incons_result=$(echo "${ceph_result}"|grep -Eo "[0-9]+ pgs inconsistent")
+  if [ ! -z "${incons_result}" ];then
+    incons_num=$(echo "${incons_result}"|awk '{print $1}')
+  fi
+  echo "${incons_num}" 
+}
+
+function ceph_block_num() {
+  local block_num=0
+  local block_result=$(echo "${ceph_result}"|grep -Eo "[0-9]+ requests are blocked")
+  if [ ! -z "${block_result}" ];then
+    block_num=$(echo "${block_result}"|awk '{print $1}')
+  fi  
+  echo "${block_num}"
+}
+ 
+
+if [ $# -ne 1 ];then
+  usage;
+fi
+case $1 in
+  cluster.status) get_ceph_data;ceph_cluster_status;;
+  ceph_s.time) get_ceph_status_execute_time;;
+  mon.status) get_ceph_data;ceph_monitor_status;;
+  osd.status) get_osd_data;ceph_osd_status;;
+  incons.num) get_ceph_data;ceph_incons_num;;
+  block.num) get_ceph_data;ceph_block_num;;
+  version) version;;
+  *) usage;;
+esac

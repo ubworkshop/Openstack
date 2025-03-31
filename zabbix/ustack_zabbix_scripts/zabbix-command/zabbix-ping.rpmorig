@@ -1,0 +1,16 @@
+#!/bin/bash
+
+[[ $2 ]] ||  exit 
+
+if [ "$1" == "status" ]
+then
+    ping -w 3 -c 2 $2 2>/dev/null |egrep  -q 'received, 0% packet loss' && echo 1 || echo 0
+
+elif [ "$1" == "sec" ]
+then
+    ping -w 3 -c 2 $2 2>/dev/null | grep avg | cut -d '/' -f5
+
+elif [ "$1" == "loss" ]
+then
+    ping -w 3 -c 2 $2 2>/dev/null |grep 'packet loss' |sed -r 's/(.*,)(.*)(%.*)/\2/'|xargs
+fi

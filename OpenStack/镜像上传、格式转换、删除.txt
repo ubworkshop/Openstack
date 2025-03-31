@@ -1,0 +1,23 @@
+ceph存储下删除镜像
+glance image-list
+rbd -p image snap unprotect pool_name/ae621fa7-d115-45f0-8786-a63bf6adc12b@snap
+rbd -p image snap rm pool_name/ae621fa7-d115-45f0-8786-a63bf6adc12b@snap
+glance image-delete ae621fa7-d115-45f0-8786-a63bf6adc12b
+
+镜像格式转换
+qemu-img convert -p -f qcow2  -O raw ubuntu14.04.img ubuntu14.04.raw
+
+
+注：操作之前查看df -h空间状态
+1-- API节点  nova show 59ed31d2-481f-448a-be6f-4c23d2be7e9b  修改完后的云主机  
+2-- API节点  rados lspools 查看pool
+3-- API节点 rbd -p openstack-00 list |grep 59ed31d2-481f-448a-be6f-4c23d2be7e9b  
+4-- API节点或云主机相应的计算节点 rbd export openstack-00/59ed31d2-481f-448a-be6f-4c23d2be7e9b_disk /var/test.raw 将系统盘导出到本地
+5-- API节点或云主机相应的计算节点 qemu-img convert -f raw -O qcow2 /var/test.raw /var/test.qcow2 文件压缩成qcow2文件
+6-- 镜像发布
+
+
+镜像上传：
+openstack image create "cirros" --file cirros-0.3.4-x86_64-disk.img --disk-format qcow2 --container-format bare --public
+
+glance image-create --name "Ubuntu" --file Ubuntu-14_x86_64.qcow2 --disk-format qcow2 --container-format bare --visibility public --progress

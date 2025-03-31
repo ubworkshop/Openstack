@@ -1,0 +1,121 @@
+#!/usr/bin/env /usr/bin/python
+'''Python module to push proc resource status to zabbix'''
+import json
+import sys
+import optparse
+import socket
+import urllib2
+import subprocess
+import tempfile
+import os
+import commands
+import re
+import sys
+
+process_name = sys.argv[1]
+status, zabbix_server = commands.getstatusoutput('cat /etc/zabbix/zabbix_agentd.conf | grep Server= | cut -d "=" -f 2')
+status, hostname = commands.getstatusoutput('hostname -f')
+
+def get_pids(process_name):
+    """ Get pids from system by process name
+
+    :process_name: the process find in pidstat
+    :returns: a list about pid
+
+    """
+    pids = []
+    status, output = commands.getstatusoutput("ps -C %s -o pid" % process_name)
+    lines = output.split("\n")
+    i = 0
+    for line in lines:
+        i += 1
+        if i!=1:
+            pids.append(line)
+    return pids
+
+def get_cpu_by_pid(cpu_data, pid):
+    cpus = cpu_data.split("\n")
+    for cpu in cpus:
+        if cpu.find(str(pid)) != -1:
+            cpu_units = cpu.split()
+            cpu_time = cpu_units[5]
+            return float(cpu_time)
+    return None
+
+def get_memory_by_pid(memory_data, pid):
+    memorys = memory_data.split("\n")
+    for memory in memorys:
+        if memory.find(str(pid)) != -1:
+            memory_units = memory.split()
+            memory_virtual = memory_units[4]
+            memory_physical = memory_units[5]
+            memory_percent = memory_units[6]
+            return memory_virtual, memory_physical, memory_percent
+
+def get_io_by_pid(io_data, pid):
+    ios = io_data.split("\n")
+    for io in ios:
+        if io.find(str(pid)) != -1:
+            io_units = io.split()
+            io_read = io_units[2]
+            io_write = io_units[3]
+            return io_read, io_write
+
+def send_data(key, value):
+    for zbxs in zabbix_server.split(','):
+    	sendcmd = "timeout 3 zabbix_sender -z %s -s %s -k \"proc.load[%s,%s]\" -o %s" % (zbxs, hostname, process_name, key, value)
+    	status, data = commands.getstatusoutput(sendcmd)
+    return data
+
+def push_proc_data_to_zabbix(process_name):
+    """push proc data to zabbix
+
+    :process_name: proc name in system
+
+    """
+    pids = get_pids(process_name)
+    status, output = commands.getstatusoutput("pidstat -urd 3 1")
+    outputs = output.split("\n\n")
+
+    cpu_data = outputs[4]
+    memory_data = outputs[5]
+    io_data = outputs[6]
+
+    max_cpu = 0
+    total_memory_percent = 0
+    total_memory_physical = 0
+    total_memory_virtual = 0
+
+    total_io_read = 0
+    total_io_write = 0
+
+    for pid in pids:
+        now_cpu = get_cpu_by_pid(cpu_data, pid)
+        if max_cpu < now_cpu:
+            max_cpu = now_cpu
+        now_memory_virtual, now_memory_physical, now_memory_percent = get_memory_by_pid(memory_data, pid)
+
+        total_memory_percent += float(now_memory_percent)
+        total_memory_virtual += float(now_memory_virtual)
+        total_memory_physical += float(now_memory_physical)
+
+        now_io_read, now_io_write = get_io_by_pid(io_data, pid)
+
+        total_io_read += float(now_io_read)
+        total_io_write += float(now_io_write)
+
+    send_datas = {
+            "cpu": max_cpu,
+            "memory_percent": total_memory_percent,
+            "memory_virtual": total_memory_virtual,
+            "memory_physical": total_memory_physical,
+            "io_read": total_io_read,
+            "io_write": total_io_write
+    }
+
+    for send in send_datas:
+        send_data(send, send_datas[send])
+    return 1
+
+if __name__ == '__main__':
+    print push_proc_data_to_zabbix(process_name)

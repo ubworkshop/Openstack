@@ -1,0 +1,18 @@
+#!/bin/bash
+#UserParameter=rabbitmq[*],<%= zabbix_script_dir %>/rabbitmq-status.sh
+cd "$(dirname "$0")"
+
+USERNAME=rabbitmq_read
+PASSWORD=Z0VFOiTQ4uYrbXqFB8c1
+CONF=/etc/zabbix/zabbix_agent.conf
+
+TYPE_OF_CHECK=$1
+METRIC=$2
+NODE=$3
+#rabbitmq[queues]
+#rabbitmq[server,disk_free]
+
+# This assumes that the server is going to then use zabbix_sender to feed the data BACK to the server.  Right now, I'm doing that
+# in the python script
+
+zabbix-rabbitmq-api --username=$USERNAME --password=$PASSWORD --check=$TYPE_OF_CHECK --metric=$METRIC --node="$NODE" --filters="$FILTER" --conf=$CONF

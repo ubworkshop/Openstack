@@ -1,0 +1,81 @@
+#!/usr/bin/python
+import commands
+import sys
+
+machine_type = sys.argv[1]
+hardware_type = sys.argv[2]
+
+def get_hardware_implement(hardware):
+    for machine_type in machine_types:
+        if hardware in machine_type["m_type"]:
+            return machine_type['m_class']
+
+class DellROmreport:
+    def __init__(self):
+        pass
+
+    def battery_healthy(self):
+        status, output = commands.getstatusoutput("sudo omreport chassis batteries | awk '/^Status/{if($NF==\"Ok\") {print 1} else {print 0}}'")
+        return output
+
+    def cpu_vt(self):
+        status, output = commands.getstatusoutput("sudo omreport chassis biossetup | awk '/Virtualization Technology/{if($NF==\"Enabled\") {print 1} else {print 0}}'")
+        return output
+
+    def cpu_turbo(self):
+        status, output = commands.getstatusoutput("sudo omreport chassis biossetup | awk '/Dell Controlled Turbo/{if($NF==\"Enabled\") {print 1} else {print 0}}'")
+        return output
+
+    def cpu_healthy(self):
+        status, output = commands.getstatusoutput("sudo omreport chassis processors | awk '/^Health/{if($NF==\"Ok\") {print 1} else {print 0}}'") 
+        return output
+
+    def fan_healthy(self):
+        fan_status, fan_num = commands.getstatusoutput("sudo omreport chassis fans | grep -c \"^Index\"")
+        fan_status, fan_alive = commands.getstatusoutput("sudo omreport chassis fans | awk '/^Status/{if($NF==\"Ok\") count+=1}END{print count}'")
+        if fan_num == fan_alive:
+            return 1
+        else:
+            return 0
+
+    def memory_healthy(self):
+        status, output = commands.getstatusoutput("sudo omreport chassis memory | awk '/^Health/{if($NF==\"Ok\"){print 1} else {print 0}}'")
+        return output
+
+    def nic_healthy(self):
+        status, nic_num = commands.getstatusoutput("sudo omreport chassis nics | grep -c \"Vendor            : Intel Corporation\"")
+        status, nic_alive = commands.getstatusoutput("sudo omreport chassis nics | awk '/^Slot/{if($NF==\"Embedded\") count+=1}END{print count}'")
+        if nic_num == nic_alive:
+            return 1
+        else:
+            return 0
+
+    def nic_connected(self):
+        status, output = commands.getstatusoutput("sudo omreport chassis nics | awk '/^Connection Status/{if($NF==\"Connected\") count+=1}END{print count}'")
+        return output
+
+    def power_healthy(self):
+        power_num = commands.getstatusoutput("sudo omreport chassis pwrsupplies | grep -c \"Index\"")
+        power_alive = commands.getstatusoutput("sudo omreport chassis pwrsupplies | awk '/^Status/{if($NF==\"Ok\") count+=1}END{print count}'")
+        if power_num == power_alive:
+            return 1
+        else:
+            return 0
+
+    def temp_healthy(self):
+        status, output = commands.getstatusoutput("sudo omreport chassis temps | awk '/^Status/{if($NF==\"Ok\") {print 1} else {print 0}}' | head -n 1")
+        return output
+
+
+machine_types = [
+  {
+    "m_type": ["R620", "XS23-TY3"],
+    "m_class": DellROmreport
+  }
+]
+
+
+if __name__ == "__main__":
+    hardware_class = get_hardware_implement(machine_type)
+    hardware = hardware_class()
+    print getattr(hardware, hardware_type)()

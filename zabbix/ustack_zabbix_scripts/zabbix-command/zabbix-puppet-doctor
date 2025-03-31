@@ -1,0 +1,32 @@
+#!/usr/bin/python
+import os
+import yaml
+import time
+statedir = "/var/lib/puppet/state"
+summaryfile = statedir + "/last_run_summary.yaml"
+agent_disabled_lockfile = statedir + "/agent_disabled.lock"
+agent_lockfile = statedir + "/agent_catalog_run.lock"
+
+
+if os.path.isfile('%s'%(summaryfile)):
+    summary = yaml.load(file('%s'%(summaryfile)))
+    lastrun = summary['time']['last_run']
+    system_time=(int(time.time()))
+    time_since_last_run = system_time - lastrun
+
+    if os.path.isfile('%s'%(agent_disabled_lockfile)):
+        print 1
+        exit(0)
+
+    elif time_since_last_run >= 36000:
+      if os.path.isfile('%s'%(agent_lockfile)):
+        os.system('rm /var/lib/puppet/state/agent_catalog_run.lock')
+      print 0
+      os.system('puppet agent -vt')
+
+    elif time_since_last_run <= 3600:
+        print 1
+        exit(0)
+else:
+   # print "UNKNOWN: Summary file not found or not readable"
+    print 2

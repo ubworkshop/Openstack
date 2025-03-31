@@ -1,0 +1,11 @@
+heat_template_version: 2015-10-15
+description: first-test
+resources:
+  instance:
+    type: OS::Nova::Server
+    properties:
+      flavor: m1.small
+      image: CentOS-7.0-x86_64.qcow2-swift
+      key_name: heat_key
+      networks:
+        - network: public

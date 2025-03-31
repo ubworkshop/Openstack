@@ -1,0 +1,47 @@
+#! /usr/bin/env python
+
+import subprocess
+import sys
+
+l7 = ['server-31', 'server-32']
+l4 = ['server-35', 'server-36']
+web = ['server-39', 'server-40']
+mon = ['server-61', 'server-62', 'server-63']
+mq = ['server-44', 'server-45', 'server-46']
+mc = ['server-47', 'server-48']
+mysql = ['server-49', 'server-50']
+ssdb = ['server-53', 'server-54']
+dns = ['server-249', 'server-250']
+
+def vm_cnt(vmList1, vmList2):
+    return [item for item in vmList1 if item in set(vmList2)]
+
+def vm_check(vmList):
+    """
+    check vm duplicate
+    0 - sucess
+    1 - fail, duplicated
+    """
+    lenList = [vm_cnt(l7, vmList), vm_cnt(l4,vmList), vm_cnt(web,vmList), vm_cnt(mon,vmList), vm_cnt(mq,vmList), vm_cnt(mc,vmList), vm_cnt(mysql,vmList), vm_cnt(ssdb,vmList), vm_cnt(dns, vmList)]
+    vmCnt = [item for item in lenList if len(item) not in (0, 1)]
+    if len(vmCnt) == 0:
+        return 0
+    else:
+        return 1
+
+
+def main():
+    hn = subprocess.Popen('hostname -f', shell=True, stdout=subprocess.PIPE)
+    hyperList = hn.communicate()[0].split('.')
+    hyperName = hyperList[0]
+    hyperProject = hyperList[2]
+
+    if hyperName in ['server-233', 'server-234', 'server-235']:
+        vm = subprocess.Popen("virsh list --all | grep server | awk '{print $2}'| cut -d'.' -f1", shell=True, stdout=subprocess.PIPE)
+        vm_list = [item.strip('\n') for item in vm.stdout.readlines()]
+        print vm_check(vm_list)
+    else:
+        print 0
+
+if __name__ == '__main__':
+    main()

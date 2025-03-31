@@ -1,0 +1,182 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+#by haoxiaoci
+from __future__ import division
+import sys
+import json
+import commands
+import types
+
+
+ceph_status = 'timeout 5 ceph -s -f json 2>/dev/null'
+ceph_osd_summary = 'timeout 5 ceph osd df tree -f json 2>/dev/null'
+ceph_df = 'timeout 5 ceph df -f json 2>/dev/null'
+
+
+def xhelp():
+    print "usage(1 parameter): %s <fsid|overall_status|election_epoch|num_osds|num_in_osds|num_up_osds|num_pgs|flag|version|read_bytes_sec|write_bytes_sec|op_per_sec|average_utilization|min_var|max_var|dev|total_used_bytes|total_avail_bytes|total_bytes|used_percent>"% sys.argv[0]
+    print "usage(2 parameters): %s <poolname max_avail|bytes_used>"% sys.argv[0]
+
+
+def cmd(args):
+    return_code,cmd_result = commands.getstatusoutput(args)
+    if return_code == 0:
+        try:
+            cmd_dict = json.loads(cmd_result)
+        except ValueError:
+            try:
+                cmd_dict = json.loads(cmd_result)
+            except ValueError:
+               print '0'
+               exit()
+            else:
+                return cmd_dict
+        else:
+            return cmd_dict
+
+
+#test whether the deep json key exsits,if the key dos not exsit,return default.
+def get_multi_level_key(json, l_key, default=None):
+    ret = json
+    for k in l_key:
+        if type(k) is types.IntType:
+            if k < 0:
+                return default
+            if not (type(ret) is types.ListType):
+                return default
+            if len(ret) <= k:
+                return default
+        elif type(k) is types.StringType:
+            if not (type(ret) is types.DictType):
+                return default
+            if not ret.has_key(k):
+                return default
+        else:
+            return default
+        ret = ret[k]
+
+    return ret
+
+
+def get_ceph_df(*args):
+    ceph_df_data=cmd(ceph_df)
+    if ceph_df_data:
+        if len(args) == 1:
+            if args[0] == 'used_percent':
+                return get_multi_level_key(ceph_df_data,['stats','total_used_bytes']) / get_multi_level_key(ceph_df_data,['stats','total_bytes']) or 0
+            elif args[0] in ['total_used_bytes', 'total_avail_bytes', 'total_bytes']:
+                list=['stats']
+                list.append(args[0])
+                return get_multi_level_key(ceph_df_data,list) or 0
+        elif len(args) == 2:
+            for i in ceph_df_data['pools']:
+                if args[0] == i['name']:
+                    return get_multi_level_key(ceph_df_data,['pools',ceph_df_data['pools'].index(i),'stats',args[1]]) or 0
+    else:
+        print '0'
+        exit()
+
+
+def get_ceph_osd_summary(args):
+    xmap={'summary':['average_utilization','min_var','max_var','dev']}
+    for i in xmap:
+        if args in xmap[i]:
+            ceph_data = cmd(ceph_osd_summary)
+            if ceph_data:
+                list=['summary']
+                list.append(args)
+                return get_multi_level_key(ceph_data,list) or 0
+            else:
+                print '0'
+                exit()
+    else:
+        xhelp()
+
+
+def get_ceph_cluster_stat(args):
+    xmap={
+          'cluster': ['fsid','election_epoch'],
+          'osd': ['num_osds','num_in_osds','osd_out','num_up_osds'],
+          'io': ['read_bytes_sec','write_bytes_sec','op_per_sec','version'],
+          'health': ['overall_status'],
+          'flags': ['flag'],
+          'pgs': ['num_pgs']}
+
+    for i in xmap:
+        if args in xmap[i]:
+            ceph_data = cmd(ceph_status)
+            if ceph_data:
+                if args in xmap['cluster']:
+                    list=[]
+                    list.append(args)
+                    return get_multi_level_key(ceph_data,list) or 0
+                elif args in xmap['osd']:
+                    list=['osdmap','osdmap']
+                    list.append(args)
+                    return get_multi_level_key(ceph_data,list) or 0
+                elif args in xmap['io']:
+                    list=['pgmap']
+                    list.append(args)
+                    return get_multi_level_key(ceph_data,list) or 0
+                elif args in xmap['health']:
+                    list=['health']
+                    list.append(args)
+                    if get_multi_level_key(ceph_data,list) == 'HEALTH_OK':
+                        return 3
+                    elif get_multi_level_key(ceph_data,list) == 'HEALTH_WARN':
+                        return 2
+                    elif get_multi_level_key(ceph_data,list) == 'HEALTH_ERR':
+                        return 1
+                    else:
+                        return 0
+                elif args in xmap['flags']:
+                    for j in ceph_data['health']['summary']:
+                         if j['summary'].find('flag(s)') > 0:
+                             return j['summary'][0:-12]
+                    return 0
+                elif args in xmap['pgs']:
+                    list=['pgmap']
+                    list.append(args)
+                    return get_multi_level_key(ceph_data,list) or 0
+                else:
+                   print '0'
+                   exit()
+            else:
+                print '0'
+                exit()
+    else:
+        xhelp()
+
+
+def main():
+     xmap={
+         'ceph_status': ['fsid', 'overall_status', 'mon_num', 'election_epoch', 'num_osds', 'num_in_osds','num_up_osds','num_pgs','flag','version','read_bytes_sec','write_bytes_sec','op_per_sec'],
+         'ceph_osd_summary': ['average_utilization','min_var','max_var','dev'],
+         'ceph_df':['total_used_bytes','total_bytes','total_avail_bytes','used_percent']
+         }
+     if len(sys.argv) == 2 :
+         args = sys.argv[1]
+         if args in xmap['ceph_status']:
+             print get_ceph_cluster_stat(args)
+         elif args in xmap['ceph_osd_summary']:
+             print get_ceph_osd_summary(args)
+         elif args in xmap['ceph_df']:
+             print get_ceph_df(args)
+         else:
+             print 'error input 1 parameter'
+             xhelp()
+     elif len(sys.argv) == 3 :
+         args1,args2= sys.argv[1], sys.argv[2]
+         pools= cmd('timeout 5 ceph osd pool ls -f json 2>/dev/null')
+         if args1 in pools and args2 in ['max_avail','bytes_used']:
+             print get_ceph_df(args1,args2)
+         else:
+             print 'error pool input'
+             xhelp()
+     else:
+         xhelp()
+
+
+if __name__ == '__main__':
+    main()
+

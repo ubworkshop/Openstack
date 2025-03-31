@@ -1,0 +1,21 @@
+qcow2
+
+glance image-create --name "CentOS-6.5-x86_64" \
+--file CentOS-6.5-x86_64-0929.qcow2 \
+--disk-format qcow2 \
+--container-format bare \
+--visibility public --progress
+
+
+raw
+
+glance image-create --name "CentOS-7.4-x86_64" \
+--file  CentOS-7.4-x86_64-1711.raw \
+--disk-format raw \
+--container-format bare \
+--visibility public --progress
+
+
+qcow2 ×ª»»³É raw
+
+qemu-img convert -O raw xxx.qcow2 xxx.raw

@@ -1,0 +1,16 @@
+#!/bin/bash
+one=$1
+two=$2
+load_one=`uptime |awk '{print $(NF-2)}'|awk -F'.' '{print $1}'`
+load_two=`uptime |awk '{print $(NF-1)}'|awk -F'.' '{print $1}'`
+if [[ -z $one || -z $two ]]
+then
+    echo -1
+else
+    if [[ $load_one -ge $1 && $load_two -ge $2 ]]
+    then
+        echo $load_one
+    else
+        echo 1
+    fi
+fi

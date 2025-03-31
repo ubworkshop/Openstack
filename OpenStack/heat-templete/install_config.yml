@@ -1,0 +1,39 @@
+heat_template_version: 2015-10-15
+description: create more one instance
+
+
+resources:
+  boot_script:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: ungrouped
+      config: |
+        #!/bin/bash
+        mv /root/.ssh/authorized_keys /root/.ssh/authorized_keys.old
+        cp  /home/centos/.ssh/authorized_keys /root/.ssh/
+        sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+        systemctl restart sshd
+        passwd root<<EOF
+        123456
+        123456
+        EOF
+        yum install mariadb mariadb-server httpd -y >> /root/install.log
+        touch /var/log/mariadb/mariadb.log
+        chown mysql.mysql /var/log/mariadb/mariadb.log
+        mkdir /var/www/html/heat
+        touch /var/www/html/heat/test
+        systemctl start mariadb.service httpd.service 
+        echo "service start Success!" >> /root/install.log
+        
+
+  server_with_boot_script:
+    type: OS::Nova::Server
+    properties:
+      flavor: m1.small
+      image: CentOS-7.0-x86_64.qcow2-swift
+      networks:
+        - network: public
+      #key_name: heat_key
+      user_data_format: SOFTWARE_CONFIG
+      user_data: {get_resource: boot_script}
+        

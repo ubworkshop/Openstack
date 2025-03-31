@@ -1,0 +1,17 @@
+heat_template_version: 2015-04-30
+...
+resources:
+  ...
+  the_resource:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      cooldown: Integer    #冷却时间，以秒为单位，可更新。可选
+      desired_capacity: Integer   #期望的初始资源数量，可更新。可选
+      max_size: Integer      #组中资源的最大值，可更新，最小值至少为0。必选
+      min_size: Integer      #组中资源的最小值，可更新，最小值至少为0。必选
+      resource: {...}       #定义资源
+      rolling_updates: {"min_in_service": Integer, "max_batch_size": Integer, "pause_time": Number}
+ #rolling_updates:针对此缩放组的滚动更新策略。Defaults to “{‘min_in_service’: 0, ‘max_batch_size’: 1, ‘pause_time’: 0}”.
+ #max_batch_size:一次替换的最大资源数量。至少为1，默认为1。
+ #min_in_service：正在执行滚动更新时正在使用的最少资源数量。至少为0，默认为0。
+ #pause_time：批量更新时等待的秒数。至少为0，默认为0。

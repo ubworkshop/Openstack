@@ -1,0 +1,35 @@
+heat_template_version: 2015-10-15
+description: create more one instance
+resources:
+  instance1:
+    type: OS::Nova::Server
+    properties:
+      flavor: m1.small
+      image: Ubuntu-12_x86_64-swift
+      networks:
+        - network: public       
+  
+  instance2:
+    type: OS::Nova::Server
+    properties:
+      flavor: m1.medium
+      image: CentOS-7.0-x86_64.qcow2-swift
+      networks:
+        - network: public 
+  
+  instance3:
+    type: OS::Nova::Server
+    properties:
+      flavor: m1.small
+      image: CentOS-6.6_x86-64-swift
+      networks:
+        - network: test  
+  
+  instance4:
+    type: OS::Nova::Server
+    properties:
+      flavor: m1.small
+      image: Ubuntu-12_x86_64-swift
+      networks:
+        - network: public        
+  

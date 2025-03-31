@@ -1,0 +1,49 @@
+控制节点：
+
+openstack-config --set /etc/glance/glance-api.conf oslo_messaging_rabbit \
+ rabbit_hosts controller1:5672,controller2:5672,controller3:5672
+openstack-config --set /etc/nova/nova.conf oslo_messaging_rabbit\
+ rabbit_hosts controller1:5672,controller3:5672,controller2:5672
+openstack-config --set /etc/neutron/neutron.conf oslo_messaging_rabbit\
+ rabbit_hosts controller1:5672,controller2:5672,controller3:5672
+openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit\
+ rabbit_hosts controller1:5672,controller2:5672,controller3:5672
+
+systemctl restart openstack-glance-api.service openstack-glance-registry.service
+systemctl restart openstack-nova-api.service \
+  openstack-nova-cert.service openstack-nova-consoleauth.service \
+  openstack-nova-scheduler.service openstack-nova-conductor.service \
+  openstack-nova-novncproxy.service
+systemctl restart neutron-server.service
+systemctl restart openstack-cinder-api.service openstack-cinder-scheduler.service
+
+计算节点
+openstack-config --set /etc/nova/nova.conf oslo_messaging_rabbit\
+ rabbit_hosts controller1:5672,controller3:5672,controller2:5672
+openstack-config --set /etc/neutron/neutron.conf oslo_messaging_rabbit\
+ rabbit_hosts controller1:5672,controller2:5672,controller3:5672
+openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit\
+ rabbit_hosts controller1:5672,controller2:5672,controller3:5672
+
+systemctl restart neutron-linuxbridge-agent.service neutron-dhcp-agent.service \
+  neutron-metadata-agent.service neutron-l3-agent.service
+systemctl restart openstack-nova-compute.service
+systemctl restart neutron-linuxbridge-agent.service
+systemctl restart openstack-cinder-volume.service target.service
+
+
+
+
+控制节点停用ceimometer服务：
+systemctl stop openstack-ceilometer-api openstack-ceilometer-notification \
+	openstack-ceilometer-central openstack-ceilometer-collector \
+	openstack-ceilometer-alarm-evaluator openstack-ceilometer-alarm-notifier
+
+
+
+systemctl disable openstack-ceilometer-api openstack-ceilometer-notification \
+	openstack-ceilometer-central openstack-ceilometer-collector \
+	openstack-ceilometer-alarm-evaluator openstack-ceilometer-alarm-notifier
+
+
+

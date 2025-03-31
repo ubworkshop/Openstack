@@ -1,0 +1,12 @@
+#!/bin/bash
+
+status=`/etc/init.d/openstack-cinder-volume status |grep -i "(pid" |wc -l`
+
+if [[ $status -eq 0 ]];then
+    /etc/init.d/openstack-cinder-volume stop >/dev/null 2>&1
+    killall -9 cinder-volume
+    /etc/init.d/openstack-cinder-volume restart >/dev/null 2>&1
+    [[ $? -eq 0 ]] && echo 0 ||echo -1
+else
+    echo 1
+fi

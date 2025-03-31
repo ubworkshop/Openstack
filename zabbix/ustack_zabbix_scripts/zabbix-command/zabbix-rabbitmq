@@ -1,0 +1,169 @@
+#!/bin/bash
+#####################################
+##    rabbitmq monitor for zabbix
+##       written by zhangxian
+##        on 2016-02-08 17:22
+####################################
+
+rabbitmq_used_cmd="/usr/sbin/rabbitmqctl status"
+rabbitmq_cluster_cmd="/usr/sbin/rabbitmqctl cluster_status"
+rabbitmq_queue_cmd="/usr/sbin/rabbitmqctl list_queues messages name"
+rabbitmq_channel_cmd="/usr/sbin/rabbitmqctl list_connections channels name"
+
+function usage() {
+  echo "Usage: sh $0 param"
+  echo "Param: fd.used.percent socket.used.percent mem.used.percent proc.used.percent "
+  echo "       disk.free.percent partition queue.num"
+  echo "       fd.used.percent:     show the fd used percent(total_used/total_limit),the correct value from 0 to 100"
+  echo "       socket.used.percent: show the socket used percent(sockets_used/sockets_limit),the correct value from 0 to 100"
+  echo "       mem.used.percent:    show the memory used percent(memory_used/vm_memory_limit),the correct value from 0 to 100"
+  echo "       proc.used.percent:   show the proc used percent(used/limit),the correct value from 0 to 100"
+  echo "       disk.free.percent:   show the disk free percent(disk_free_limit/disk_free),the correct value from 0 to 100"
+  echo "       partition:           show the partition status on cluster,the correct value is null"
+  echo "       queue.num:           show the max nums on queue which is not null"
+  echo "       channel.num:         show the max connect nums on channel which is not null"
+  echo "       version:             show the version"
+  echo "       help:                show the help usage"
+  echo "Example: sh $0 fd.used.percent "
+  echo "Written by Zhangxian"
+  exit 0;
+} 
+
+function help() {
+  usage;
+}
+
+function version(){
+  echo "Version 2.0"
+}
+
+function get_used_data(){
+  rabbitmq_used_data=$(${rabbitmq_used_cmd} 2>/dev/null)
+  if [ $? -ne 0 ];then
+    echo "-1";
+    exit 1;
+  fi
+}
+
+function get_cluster_data(){
+  rabbitmq_cluster_data=$(${rabbitmq_cluster_cmd} 2>/dev/null)
+  if [ $? -ne 0 ];then
+    echo "-1";
+    exit 1;
+  fi
+}
+
+function get_queue_data(){
+  rabbitmq_queue_data=$(${rabbitmq_queue_cmd} 2>/dev/null)
+  if [ $? -ne 0 ];then
+    echo "-1";
+    exit 1;
+  fi
+}
+
+function get_channel_data(){
+  rabbitmq_channel_data=$(${rabbitmq_channel_cmd} 2>/dev/null)
+  if [ $? -ne 0 ];then
+    echo "-1";
+    exit 1;
+  fi
+}
+
+function rabbitmq_fd_used_percent(){
+  local fd_data=$(echo "${rabbitmq_used_data}"|sed -n '/file/,/]}/p')
+  if [ -z "${fd_data}" ];then
+    echo "-1";
+  else
+    local fd_total=$(echo "${fd_data}"|grep -oE "total_limit,[0-9]+"|awk -F"," '{print $2}')
+    local fd_used=$(echo "${fd_data}"|grep -oE "total_used,[0-9]+"|awk -F"," '{print $2}')
+    local fd_used_percent=$(echo "${fd_used} ${fd_total}"|awk '{if($2 == 0) print 0; else printf "%0.5f\n",$1*100/$2 }')  
+    echo ${fd_used_percent}; 
+  fi
+}
+
+function rabbitmq_socket_used_percent(){
+  local socket_data=$(echo "${rabbitmq_used_data}"|sed -n '/file/,/]}/p')
+  if [ -z "${socket_data}" ];then
+    echo "-1";
+  else
+    local socket_total=$(echo "${socket_data}"|grep -oE "sockets_limit,[0-9]+"|awk -F"," '{print $2}')
+    local socket_used=$(echo "${socket_data}"|grep -oE "sockets_used,[0-9]+"|awk -F"," '{print $2}')
+    local socket_used_percent=$(echo "${socket_used} ${socket_total}"|awk '{printf "%0.5f\n",$1*100/$2 }')  
+    echo ${socket_used_percent}; 
+  fi
+}
+
+function rabbitmq_proc_used_percent(){
+  local proc_data=$(echo "${rabbitmq_used_data}"|sed -n '/processes/,/]}/p')
+  if [ -z "${proc_data}" ];then
+    echo "-1";
+  else
+    local proc_total=$(echo "${proc_data}"|grep -oE "limit,[0-9]+"|awk -F"," '{print $2}')
+    local proc_used=$(echo "${proc_data}"|grep -oE "used,[0-9]+"|awk -F"," '{print $2}')
+    local proc_used_percent=$(echo "${proc_used} ${proc_total}"|awk '{printf "%0.5f\n",$1*100/$2 }')  
+    echo ${proc_used_percent}; 
+  fi
+}
+
+function rabbitmq_mem_used_percent(){
+  local mem_data=$(echo "${rabbitmq_used_data}"|sed -n '/memory/,/]}/p')
+  if [ -z "${mem_data}" ];then
+    echo "-1";
+  else
+    local mem_total=$(echo "${mem_data}"|grep -oE "vm_memory_limit,[0-9]+"|awk -F"," '{print $2}')
+    local mem_used=$(echo "${mem_data}"|grep -oE "total,[0-9]+"|awk -F"," '{print $2}')
+    local mem_used_percent=$(echo "${mem_used} ${mem_total}"|awk '{printf "%0.5f\n",$1*100/$2 }')  
+    echo ${mem_used_percent};
+  fi 
+}
+
+function rabbitmq_disk_free_percent(){
+  local disk_free_limit=$(echo "${rabbitmq_used_data}"|grep -oE "disk_free_limit,[0-9]+"|awk -F"," '{print $2}')
+  local disk_free=$(echo "${rabbitmq_used_data}"|grep -oE "disk_free,[0-9]+"|awk -F"," '{print $2}')
+  local disk_free_percent=$(echo "${disk_free_limit} ${disk_free}"|awk '{printf "%0.5f\n",$1*100/$2 }')  
+  echo ${disk_free_percent}; 
+}
+
+function rabbitmq_partition_status(){
+  local partition_status=$(echo "${rabbitmq_cluster_data}"|grep  "partitions"|grep -v "\[\]")
+  if [ ! -z "${partition_status}" ];then
+    echo "${partition_status}";
+  else
+    echo "0";
+  fi
+}
+
+function rabbitmq_queue_num(){
+  local queue_data=$(echo "${rabbitmq_queue_data}"|grep -v "^0"|grep -v "queues\|done"|awk '{print $1}'|sort -nrk 1|head -1) 
+  if [ ! -z "${queue_data}" ];then
+    echo "${queue_data}";
+  else
+    echo "0";
+  fi 
+}
+
+function rabbitmq_channel_num(){
+  local channel_data=$(echo "${rabbitmq_channel_data}"|sort -k1,1nr|awk '{print $1}'|head -1) 
+  if [ ! -z "${channel_data}" ];then
+    echo "${channel_data}";
+  else
+    echo "0";
+  fi 
+}
+
+if [ $# -ne 1 ];then
+  usage;
+fi
+
+case $1 in
+  fd.used.percent) get_used_data;rabbitmq_fd_used_percent;;
+  proc.used.percent) get_used_data;rabbitmq_proc_used_percent;;
+  mem.used.percent) get_used_data;rabbitmq_mem_used_percent;;
+  socket.used.percent) get_used_data;rabbitmq_socket_used_percent;;
+  disk.free.percent) get_used_data;rabbitmq_disk_free_percent;;
+  partition) get_cluster_data;rabbitmq_partition_status;;
+  queue.num) get_queue_data;rabbitmq_queue_num;;
+  channel.num) get_channel_data;rabbitmq_channel_num;;
+  version) version;;
+  *) usage;;
+esac

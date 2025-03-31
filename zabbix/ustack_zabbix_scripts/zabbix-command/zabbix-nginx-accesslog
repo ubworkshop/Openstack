@@ -1,0 +1,90 @@
+#!/bin/bash
+#jiayun
+#
+#change by wxl,this use in UOS2.0
+now_date=`date +%d/%b/%Y:%H:%M`
+#date="`date +%d`/`date +%b`/`date +%Y:%H:%M`"
+date="`date +%d`/`date +%b`/`date -d '1 minute ago' +%Y:%H:%M`"
+
+[ "$1" == "help" ] && {  echo "Usage: zabbix-nginx-accesslog placebo /us/bill 404" ; exit  ; }
+
+[ $# -lt 3 ] && { echo -1 ; exit  ; }
+if [[ -n `cat /etc/nginx/sites-enabled/uos_vhost.conf |grep 'ssl on;'` ]];then
+    http="/var/log/nginx/placebo_https_access.log"
+else
+    http="/var/log/nginx/placebo_http_access.log"
+fi
+[ "$1" == "placebo" ] && LOGPATH=$http
+[ "$1" == "ustack" ] && LOGPATH="/var/log/nginx/ustack-www_access.log"
+[ "$1" == "tars" ] && LOGPATH="/var/log/nginx/tars_http_access.log"
+[ "$1" == "mapi" ] && LOGPATH="/var/log/nginx/mapi_access.log"
+[ "$1" == "internal" ] && LOGPATH="/var/log/nginx/internal-ustack-www_access.log"
+
+test -s $LOGPATH  ||  { echo 100 ; exit  ;  }
+
+#[ "$1" == "placebo" ] && LOGPATH="/tmp/test.log"
+#[ "$1" == "ustack" ] && LOGPATH="/tmp/test.log"
+
+KEYWORD="GET $2"
+CODE=$3
+
+echo $LOGPATH $KEYWORD $CODE  > /tmp/zabbix-t.txt
+
+
+code_5xx ()
+{
+
+    LOG_CODE=`tail -n 1500 $LOGPATH |egrep $date|egrep "$KEYWORD"|awk -F'"' '($7-0)>499 && ($7-0)<600{print $0}'|sed -n '1p'`
+    #             LOG_CODE=`tail -n 1500 $LOGPATH |egrep "$KEYWORD"|awk -F'"' '($7-0)>499 && ($7-0)<600{print $0}'|sed -n '1p'`
+
+    [ "$LOG_CODE" ] && {
+       LOG_NUM=`tail -n 1500 $LOGPATH |egrep $date|egrep "$KEYWORD"|awk -F'"' '($7-0)>499 && ($7-0)<600{a[($7-0)]++}END{for (j in a) print "code:"j,"num:"a[j]}'`
+       #             LOG_NUM=`tail -n 1500 $LOGPATH |egrep "$KEYWORD"|awk -F'"' '($7-0)>499 && ($7-0)<600{a[($7-0)]++}END{for (j in a) print "code:"j,"num:"a[j]}'`
+       echo -e " 【$LOG_NUM 】\n $LOG_CODE"
+    } || echo 0
+}
+
+code_404()
+{
+    LOG_CODE=`tail -n 1500 $LOGPATH |egrep $date|egrep "$KEYWORD"|awk -F'"' '($7-0)==404{print $0}'|sed -n '1p'`
+    #LOG_CODE=`tail -n 1500 $LOGPATH |egrep "$KEYWORD"|awk -F'"' '($7-0)==404{print $0}'|sed -n '1p'`
+
+    [ "$LOG_CODE" ] && {
+       LOG_NUM=`tail -n 1500 $LOGPATH |egrep $date|egrep "$KEYWORD"|awk -F'"' '($7-0)==404{a[($7-0)]++}END{for (j in a) print "code:"j,"num:"a[j]}'`
+                    #LOG_NUM=`tail -n 1500 $LOGPATH |egrep "$KEYWORD"|awk -F'"' '($7-0)==404{a[($7-0)]++}END{for (j in a) print "code:"j,"num:"a[j]}'`
+       echo -e " 【$LOG_NUM 】\n $LOG_CODE"
+    } || echo 0
+}
+
+mapi_not200()
+{
+   LOG_CODE=`tail -n 1500 $LOGPATH |egrep $date|awk -F'"' '($7-0)!=200{print $0}'|sed -n '1p'`
+   #LOG_CODE=`tail -n 1500 $LOGPATH |awk -F'"' '($7-0)!=200{print $0}'|sed -n '1p'`
+   [ "$LOG_CODE" ] && {
+      LOG_NUM=`tail -n 1500 $LOGPATH |egrep $date|awk -F'"' '($7-0)!=200{a[($7-0)]++}END{for (j in a) print "code:"j,"num:"a[j]}'`
+      #LOG_NUM=`tail -n 1500 $LOGPATH |awk -F'"' '($7-0)!=200{a[($7-0)]++}END{for (j in a) print "code:"j,"num:"a[j]}'`
+   echo -e " 【$LOG_NUM 】\n $LOG_CODE"
+   } || echo 0
+}
+aplipay_not200()
+{
+    LOG_CODE=`tail -n 1500 $LOGPATH |egrep $date|egrep "$KEYWORD"|awk -F'"' '($7-0)!=200{print $0}'|sed -n '1p'`
+    #LOG_CODE=`tail -n 1500 $LOGPATH |egrep "$KEYWORD"|awk -F'"' '($7-0)!=200{print $0}'|sed -n '1p'`
+    [ "$LOG_CODE" ] && {
+       $LOG_NUM=`tail -n 1500 $LOGPATH |egrep $date|egrep "$KEYWORD"|awk -F'"' '($7-0)!=200{a[($7-0)]++}END{for (j in a) print "code:"j,"num:"a[j]}'`
+       LOG_NUM=`tail -n 1500 $LOGPATH |egrep "$KEYWORD"|awk -F'"' '($7-0)!=200{a[($7-0)]++}END{for (j in a) print "code:"j,"num:"a[j]}'`
+       echo -e " 【$LOG_NUM 】\n $LOG_CODE"
+    } || echo 0
+}
+
+if ( [  "$3" == "404" -a  "$4" == "5xx" ] || [  "$3" == "5xx" -a  "$4" == "404" ] ) ;then
+     code_5xx ;code_404
+elif [  "$CODE" == "5xx" ];then
+     code_5xx
+elif [  "$CODE" == "404" ];then
+     code_404
+elif [  "$CODE" == "not200" -a "$1" == "mapi" ];then
+     mapi_not200
+elif [ "$CODE" == "not200" -a "$1" == "placebo" ];then
+     aplipay_not200
+fi

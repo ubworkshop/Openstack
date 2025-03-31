@@ -1,0 +1,495 @@
+ （一）简介
+    Yarn 是一个依赖管理工具。它能够管理你的代码，并与全世界的开发者分享代码。Yarn 是高效、安全和可靠的，你完全可以安心使用。
+    Yarn 能够让你使用其他开发者开发的代码，让你更容易的开发软件。
+    代码是通过包（有时也被称为模块）进行共享的。 在每一个包中包含了所有需要共享的代码，另外还定义了一个 package.json 文件，用来描述这个包。
+ （二）工作流程
+    对于依赖管理来说，在项目中使用一个新的包管理器就是使用了一个新的工作流。 Yarn 将尽其最大的努力不侵入你的工作方式，并且使其工作流中的每一步都能简单易懂。
+    需要知道一些基本的工作流的知识：
+        创建一个新的项目
+        添加／更新／删除依赖包
+        安装／重新安装依赖包
+        使用版本管理工具（例如 git）
+        持续集成
+  （三）安装yarn
+        参考官方文档 https://yarn.bootcss.com/docs/install.html
+  （四）创建一个新项目
+    使用yarn init命令生成，会有如下问题弹出做回答（若不想填可通过输入enter跳过问题）
+      name (your-project):
+      version (1.0.0):
+      description:
+      entry point (index.js):
+      git repository:
+      author:
+      license (MIT):
+    命令结束后会生成package.json，文档中的内容如下：
+    {
+      "name": "my-new-project",
+      "version": "1.0.0",
+      "description": "My New Project description.",
+      "main": "index.js",
+      "repository": {
+        "url": "https://example.com/your-username/my-new-project",
+        "type": "git"
+      },
+      "author": "Your Name <you@example.com>",
+      "license": "MIT"
+    }
+  yarn init命令其实就是生成该文件，后台并未发生其他什么操作，你可以任意编辑该文件，这个文件主要用来存储你项目的信息，它包含你的项目名，所有者，源代码地址，但最重要的是项目需要安装的依赖
+  Note:使用yarn init --yes可以跳过所有问题
+  添加另外的fields
+    {
+      "name": "my-new-project",
+      "...": "...",
+      "keywords": ["cool", "useful", "stuff"],
+      "homepage": "https://my-new-project-website.com",
+      "bugs": "https://github.com/you/my-new-project/issues",
+      "contributors": [
+        "Your Friend <their-email@example.com> (http://their-website.com)",
+        "Another Friend <another-email@example.com> (https://another-website.org)"
+      ],
+      "files": [
+        "index.js",
+        "lib/*.js",
+        "bin/*.js"
+      ],
+      "bin": {
+        "my-new-project-cli": "bin/my-new-project-cli.js"
+      }
+    }
+  
+   homepage is a url to point users to a website that informs them on the package with an introduction, documentations, and links to additional resources.
+   bugs is a url to point users of your package to if they discover an issue with your package.
+   contributors is a list of contributors to the package. If there are other people involved in your project, you can specify them here.
+   files is a list of files that should be included in your package when published and installed. If unspecified Yarn will include every file.
+   bin is a mapping of cli commands (binaries) for Yarn to create for the package when installing it.
+   license 根据你自己的情况决定项目的license
+   代码共享通过github,gitlab,Bitbucket
+   文档至少应当写一个README.md在项目根目录下介绍你的项目以及公共API，项目的质量高低很大部分在于文档的质量
+   保持包尽可能小
+（五）创建一个包
+    一个包是一个有源代码以及package.json用来使用Yarn,大多数包使用一些版本控制系统，但yarn不关心使用那些版本控制，目前常用的是git
+    创建你的第一个包
+    git init my-new-project
+    cd my-new-project
+    yarn init
+    处理结果回到 （四）
+ (六)发布一个包
+    为了通过 Yarn 共享你的包给全世界的其他开发者，你需要先发布它。当你用 Yarn 发布一个包之后，它会进入 npm registry，并发布到全世界。
+    1）登录到npm 
+      若npm没有账号需要先注册一个账号 使用yarn login 登录需要提供username与邮箱信息
+    2）发布你的包
+      一旦你完成了所有代码的开发以及测试工作，接下来就可以发布你的包了：
+      yarn publish
+      首先你将被询问要发布的新版本号
+      接着你将被要求输入你的 npm 密码
+      最后，Yarn 将发布你的包并且注销你当前会话令牌（token）
+      每次你想发布一个新版本，都需要按照上面相同的流程走一遍。 
+    3)访问你的包
+      你的包现在应该在 https://www.npmjs.com/package/my-new-project 地址。你可以安装它：
+        yarn add my-new-project
+      你也可以在 npm registry 里查看所有信息：
+        yarn info my-new-project
+（七）管理依赖
+  添加，更新，移除项目中的依赖，需要明白一套命令
+  每一个命令都会自动更新你的package.json与yarn.lock文件
+  1.添加依赖
+    yarn add [package]
+    yarn add [package]@[version]明确包版本
+    yarn add [package]@[tag]明确包tag
+    自动在package.json 中添加，同时更新yarn.lock文件映射更新
+     {
+        "name": "my-package",
+        "dependencies": {
+    +     "package-1": "^1.0.0"
+        }
+      }
+    同时你也可以添加其他类型的依赖
+    yarn add --dev to add to devDependencies
+    yarn add --peer to add to peerDependencies
+    yarn add --optional to add to optionalDependencies
+     示例：
+    yarn add package-1@1.2.3
+    yarn add package-2@^1.0.0
+    yarn add package-3@beta
+  2.更新依赖
+    yarn upgrade [package]
+    yarn upgrade [package]@[version]
+    yarn upgrade [package]@[tag]
+  3.移除依赖
+    yarn remove [package]
+（八）package.json
+    1.Essentials
+      name和version必须项，否则不能install
+      #name:包名称
+        Rules
+          Must be less than or equal to 214 characters (including the @scope/ for scoped packages).
+          Must not start with a dot (.) or an underscore (_).
+          Must not have an uppercase letter in the name.
+          Must use only URL-safe characters.
+        Tips
+          Don’t use the same name as a core Node.js module
+          Don’t put js or node in the name.
+          Keep names short and descriptive. You want people to understand what it is from the name, but it will also be used in require() calls.
+          Make sure that there isn’t something in the registry with the same name.
+      #version 
+        包的版本
+    2.info
+      #description
+          说明包的一段文字信息描述，让人容易明白包的作用与用途
+      #keywords
+           keywords is a list of terms that other developers can search for to find your package or related packages.
+      #license
+    3.Links
+      #homepage
+      #bugs
+      #repository
+    4.Maintainers
+      #author
+      #contributors
+    5.Files
+      #files
+      #main
+      #bin
+      #man
+      #directories
+    6.Tasks
+      #scripts
+      #config
+    7.Dependencies
+      #dependencies
+      #devDependencies
+      #peerDependencies
+      #optionalDependencies
+      #bundledDependencies
+      #flat
+    8.System
+      #engines
+      #os
+      #cpu
+    9.Publishing
+      #private
+      #publishConfig
+ (九) yarn.lock
+    利用 yarn.lock 锁定依赖
+    Yarn 也使用一个在你项目根目录下的 yarn.lock 文件让依赖解析又快又可靠。 你不需要碰这个文件 - yarn 拥有并在管理依赖时修改它。
+    为了确保你的应用工作一致，你应该始终把 yarn.lock 文件保存到代码仓库中。
+    为了在不同机器上得到一致的安装结果，Yarn 需要比你配置在 package.json 文件中的依赖列表更多的信息。 Yarn 需要知道每个安装的依赖包的准确的版本号。
+    为了做到这样，Yarn 使用一个叫做 yarn.lock 的文件，这个文件就存放在你的项目的根目录下。这些 “lockfile” 看起来像这样：
+    # THIS IS AN AUTOGENERATED FILE. DO NOT EDIT THIS FILE DIRECTLY.
+    # yarn lockfile v1
+    package-1@^1.0.0:
+      version "1.0.3"
+      resolved "https://registry.npmjs.org/package-1/-/package-1-1.0.3.tgz#a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0"
+    package-2@^2.0.0:
+      version "2.0.1"
+      resolved "https://registry.npmjs.org/package-2/-/package-2-2.0.1.tgz#a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0"
+      dependencies:
+        package-4 "^4.0.0"
+    package-3@^3.0.0:
+      version "3.1.9"
+      resolved "https://registry.npmjs.org/package-3/-/package-3-3.1.9.tgz#a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0"
+      dependencies:
+        package-4 "^4.5.0"
+    package-4@^4.0.0, package-4@^4.5.0:
+      version "4.6.3"
+      resolved "https://registry.npmjs.org/package-4/-/package-4-2.6.3.tgz#a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0"
+    这和其他像包管理（例如 Bundler 或 Cargo）所采用的 lockfile 是类似的。和 npm 的 npm-shrinkwrap.json 很像，然而 yarn.lock 文件保存了所有信息并能够通过它复现相同的结果。
+  1)由 Yarn 管理 yarn.lock 文件
+    你的 yarn.lock 文件是自动产生的，并且应该完全由 Yarn 负责管理。当你用 Yarn CLI 增加／升级／删除依赖包时，Yarn 将自动更新你的 yarn.lock 文件。千万不要直接编辑这个文件，因为可能会破坏这个文件。
+  2)只适用于当前包
+    在安装依赖包的过程中，Yarn 只使用顶级目录下的 yarn.lock 文件，并且会忽略任何依赖包里面的 yarn.lock 文件。 顶级目录下的 yarn.lock 文件包含了全部信息，利用这个文件，Yarn 就能锁定整个依赖树中所有依赖包的准确版本号。
+  3)提交到版本控制系统
+    所有 yarn.lock 文件都应该被提交到版本控制系统（例如 git 或者 mercurial）中。这能够帮助 Yarn 在所有机器上安装完全相同的依赖树，无论它是你同事的笔记本还是持续集成（CI）服务器。
+    框架和库的作者也应该把 yarn.lock 文件提交到版本控制系统中。别担心发布 yarn.lock 文件有什么副作用，因为它对库的使用者不会有任何影响。
+（十）yarn的操作命令
+      yarn add: 为当前包添加一个依赖包。
+      yarn init: 初始化一个包。
+      yarn install: 依照 package.json 文件列出的依赖安装所有依赖包。
+      yarn publish: 发布一个包到包管理器。
+      yarn remove: 从当前项目删除一个无用的依赖包。
+    默认操作 运行yarn并且不带任何子命令与运行 yarn install 是一样的，任何参数都将透传
+    并发与--mutex
+    当你运行许多yarn实例在同一台服务器同一时间上, 你能确保只有一个实例运行在任何时候(并且避免冲突)通过the global flag --mutex 跟随在file or network.
+    当使用yarn file将会读/写一个.yarn-single-instance a mutex file默认的在当前工作目录环境下. 你也能够明确（定义）一个可选的或全局的文件名.
+      --mutex file
+      --mutex file:/tmp/.yarn-mutex
+    当执行 Yarn 的 network 子命令时将默认创建一个监听 31997 的服务。你可以指定另外一个端口号。
+      --mutex network
+      --mutex network:30330
+（十一）命令详解
+    1.yarn add 添加依赖包
+      当你想使用另一个包时，你要先把它添加到依赖列表中。也就是执行 yarn add [package-name] 命令将它安装到你的项目中。
+      这也将同时更新你的 package.json 和 yarn.lock 文件，这样，同一项目的其他开发者也可以通过执行 yarn 或者 yarn install 来安装同样的依赖。
+      大部分包会通过 npm registry 来安装，只需指定包的名字即可。例如，yarn add react 命令会通过 npm registry 来安装 react 包。
+    你可以用以下任何方法指定版本号：
+      yarn add package-name 命令用来安装包的 “最新（latest）” 版本。
+      yarn add package-name@1.2.3 命令将通过 npm registry 来安装这个包的指定版本。
+      yarn add package-name@tag 命令用来安装具有某个 “标签（tag）” 的包（例如： beta、next 或 latest）。
+    通常，一个包就是一个装有代码和 package.json 文件的文件夹，package.json 文件用于描述这个包的内容。你可以用多种方式来引用一个包：
+    你还可以引用不同位置上的包：
+      yarn add package-name 命令通过 npm registry 安装指定的包，除非你在 package.json 中指定了另一个 registry。
+      yarn add file:/path/to/local/folder 命令从你的本地文件系统中安装一个包。这种方式用于测试你还没有发布到 registry 的包。
+      yarn add file:/path/to/local/tarball.tgz 命令从 gzip 压缩文件中安装一个包，这种方式用于在正式发布之前分享一个包。
+      yarn add <git remote url> 命令从远程的 git 仓库中安装一个包。
+      yarn add <git remote url>#<commit/tag> 命令远程的 git 仓库中安装一个指定了 git commit 或 git tag 的包。
+      yarn add https://my-project.org/package.tgz 命令从一个远程的 gzip 压缩文件中安装一个包。
+    注意事项
+      如果你以前用过类似于 npm 的包管理器，你可能会想如何全局安装依赖包。
+      对于绝大部分包来说，全局安装个坏实践，因为它们是隐性的。最好本地安装你的依赖包，这样它们都是明确的，每个参与项目的人都能安装同样的依赖包。
+      如果你正在尝试使用一个命令行（CLI）工具，你可以在 ./node_modules/.bin 目录下找到这个工具所自带的 可执行文件（bin）。你也可以用 global 命令：
+      yarn global add <package...>
+      命令
+      yarn add <package...>
+      按照 dependencies 列出的依赖列表安装一个或多个包。
+      yarn add <package...> [--dev/-D]
+      添加 --dev 或 -D 参数将按照 devDependencies 列出的依赖列表安装一个或多个包。
+      yarn add <package...> [--peer/-P]
+      添加 --peer 或 -P 参数将按照 peerDependencies 列出的依赖列表安装一个或多个包。
+      yarn add <package...> [--optional/-O]
+      添加 --optional 或 -O 参数将按照 optionalDependencies 列出的依赖列表安装一个或多个包。
+      yarn add <package...> [--exact/-E]
+      添加 --exact 或 -E 参数将安装指定版本的包。默认是安装相同主版本（major version）号的最新版本的包。例如， yarn add foo@1.2.3 将会安装 1.9.1，但是 yarn add foo@1.2.3 --exact 将会安装 1.2.3。
+      yarn add <package...> [--tilde/-T]
+      添加 --tilde 或 -T 参数将安装相同副版本（minor version）号的最新版本的包。默认是安装相同主版本（major version）号的最新版本的包。例如，yarn add foo@1.2.3 --tilde 将安装 1.2.9 而不是 1.3.0。
+    2.yarn cache
+      yarn cache ls
+      Yarn 会在你的用户目录下开辟一块全局缓存用以保存下载的包。yarn cache ls 用于列出所有已经缓存的包。
+      yarn cache dir
+      执行 yarn cache dir 命令会打印出当前的 yarn 全局缓存在哪里。
+      yarn cache clean
+      执行此命令将清除本地缓存。下次执行 yarn 或 yarn install 时将会重新填充缓存。
+      改变 yarn 的缓存路径
+      设置 cache-folder 的值用来改变缓存目录：
+      yarn config set cache-folder <path>
+      你还可以利用 --cache-folder 参数来指定缓存目录：
+      yarn <command> --cache-folder <path>
+    3.yarn bin
+      显示你的yarn bin文件夹位置
+    4.yarn check
+      校验当前项目的 package.json 文件里的依赖版本和 yarn 的 lock 文件中列出的版本是否匹配。
+      yarn check --integrity
+      校验当前项目的 package.json 文件里列出的依赖包的版本以及此包的散列值是否与 yarn 的 lock 文件中列出的相应版本和散列（hash）值一致。 这有助于验证依赖包没有被篡改。
+    5.yarn clean
+      从依赖包中清理和移除不必要的文件
+    6.yarn config
+      管理yarn配置文件
+      yarn config set <key> <value> [-g|--global]
+      yarn config get <key>
+      yarn config delete <key>
+      yarn config list  
+    7.yarn generate-lock-entry 
+      此命令针对复杂的使用情况或业务。它所生成的 lock 文件用来作为当前的 package.json 文件的清单文件
+    8.yarn global
+      在操作系统上安装全局的包
+      yarn global <add/bin/ls/remove/upgrade> [--prefix]
+    9.yarn info 
+      查看关于一个包的信息
+      yarn info <package> [<field>] 默认树形格式显示
+      yarn info <package> [<field>] --json  json格式展示
+      yarn info <package>@[version] 选定确定的版本
+      yarn info <package> readme 默认是不显示readme field相关信息，可以通过添加readme
+    10.yarn init
+      初始化环境，生成packge.json文件，同时配置一些信息
+      yarn init --yes/-y 跳过信息设置
+    11.yarn install 
+      在本地node_modules文件夹中会安装package.json列出的所有依赖包，通常也用在当你检出一个项目代码或当其他开发人员添加一个新依赖你需要安装时
+      yarn install --flat
+      只允许一个版本的包，第一次运行时会提示你去选择一个single版本为每一个有多个版本范围的包. 将会在你的package.json中的resolutions field添加如下
+      "resolutions": {
+        "package-a": "2.0.0",
+        "package-b": "5.0.0",
+        "package-c": "1.5.2"
+      }
+      yarn install --force
+      会参照所有包，甚至以前安装的
+      yarn install --har
+      安装期间输出一个http结构的所有网络请求,HAR files 用于挖掘网络性能同时能用工具像Google’s HAR Analyzer or HAR Viewer一样分析.
+      yarn install --no-lockfile
+      不会读或生成e a yarn.lock lockfile. 
+      yarn install --production
+      使用U--production 标签, 或当NODE_ENV环境变量设置成生产环境, 不会安装任何列出的开发环境依赖devDependencies. --prod为该别名.
+      yarn install --pure-lockfile
+      不会生成a yarn.lock lockfile.
+   12.yarn licenses
+      列出已安装包的许可证。
+      yarn licenses ls
+      执行此命令将按字母顺序列出所有被 yarn 或 yarn install 安装的包，并同时列出每个包所采用的许可证（和源代码的 URL 地址）。
+      yarn licenses generate-disclaimer
+      执行此命令将通过 stdout 输出所有已安装包的许可证列表，并安一定顺序进行排序。
+   13.yarn link
+	  开发过程中一个包被引用在另一个工程中，常被用在测试新特新或当你在另一个项目中显示的包中debug一个问题
+   14.yarn login 
+	  保存你的用户名和邮件地址
+	  若为未注册用户运行该命令会提示你在npm注册,若注册完毕运行该命令，不会提示输入密码，但在yarn publish时会提示输入密码
+	  使用yarn logout 删除用户名和邮件地址
+   15.yarn list
+	  yarn list 列出所有当前工作目录的依赖的包
+	  yarn list --depth=0 限制输出的依赖包层级
+   16.yarn outdated
+	  检查过时的依赖包.
+	  yarn outdated [package...]
+	  检查具体包是否过时
+   17.yarn owner
+	  管理包的所有者
+	  什么是包所有者,就是一个有权限去改变一个包的用户,一个单独包根据需要能有许多所有者
+	  所有者有如下权限：
+		1)发布一个包的新版本;
+		2)添加或移除包的其他所有者;
+		3)改变一个包的metadata;
+	  yarn owner ls <package>
+	  列出一个包的全部所有者。
+	  yarn owner add <user> <package>
+	  添加一个用户作为包的所有者,运行该命令前你必须是该包的所有者.
+	  yarn owner rm <user> <package>
+	  移除一个包的所有者,运行该命令前你必须是该包的所有者.
+   18.yarn pack
+	  创建一个包依赖的压缩包结构
+	  yarn pack --filename <filename>
+	  指定名字创建一个包依赖的压缩包结构
+   19.yarn publish
+	  发布一个包到npm注册仓库
+	  一旦包发布了你就不能再修改明确的版本,所以在发布前谨慎
+	  yarn publish
+	  以当前工作目录的package.json发布包
+	  yarn publish [tarball]
+	  以.tgz压缩的tar包发布
+	  yarn publish [folder]
+	  发布包中包含的明确目录,<folder>/package.json应当明确业报的详细信息.
+	  yarn publish --tag <tag>
+	  提供一个标签去yarn publish允许你以一个明确的标签发布包,例如,如果你运行yarn publish --tag beta,并且你的包命名为blorp,然后别人可以安装你的包通过yarn add blorp@beta.
+	  yarn publish --access <public|restricted> 控制发布包访问的权限
+	  The --access flag控制是否the npm registry 发布这个包以public package或是restricted限制的包
+  20.yarn remove
+	  移除依赖包
+	  yarn remove <package...>
+	  从你当前的工作目录依赖包中移除包,在此过程通过更新你的package.json and yarn.lock实现
+	  其他开发人员可以通过运行yarn install来同步他们的node_modules目录通过整套依赖
+	  当你移除一个包时，它会移除所有类型的依赖,dependencies, devDependencies,等等
+  21.yarn run
+	 运行一个定义的包脚本
+	 你可以定义脚本在你的package.json文件中
+	 例如：
+	   {
+		  "name": "my-package",
+		  "scripts": {
+			"build": "babel src -d lib",
+			"test": "jest"
+		  }
+		}
+	yarn run [script] [-- <args>]
+	如果你定义了一个脚本对象在你的包中,这个命令将会运行定义的脚本，例如：
+	yarn run test
+	这个命令将会执行你package.json中的名字为test的脚本
+	你可以通过使用--来传入传统的参数
+	yarn run test -- -o --watch 运行这个命令将会执行 jest -o --watch
+	脚本也能以任何在node_modules/.bin/目录下安装执行的
+	yarn run
+	如果你以yarn run没有明确一个脚本，命令将会列出这个包所有可执行的脚本
+  22.yarn self-update
+	更新yarn到最新的版本,如果不能更新成功，则需要手动操作升级
+  23.yarn tag
+    添加,移除或列出一个包的tag
+	Different tags have different meanings:
+		latest: The current version of the package
+		stable: The latest stable release of the package, normally the same as latest unless you have Long-term Support (LTS)
+		beta: A release before becoming latest and/or stable, used to share upcoming changes before they are finished.
+		canary: A “nightly” or pre-beta release, if your project is frequently updated and depended on by many people you may use this to share even earlier code.
+		dev: Sometimes you want to be able to test out a single revision through the registry while you’re still working on things, this is useful for that.
+	yarn tag add <package>@<version> <tag>
+	添加一个tag 名为<tag>为特定的包版本 
+	yarn tag rm <package> <tag>
+	移除一个不再使用的包tag
+	yarn tag ls [<package>]
+	列出一个包的所有tag,如果不明确包将会以你当前目录内的默认包
+  24.yarn team
+     维护团队成员,管理团队组织,和改变团队成员
+	 yarn team create <scope:team>
+	 创建一个新的团队
+	 yarn team destroy <scope:team>
+	 解散一个存在的团队
+	 yarn team add <scope:team> <user>
+	 添加一个用户到存在的团队
+	 yarn team rm <scope:team> <user>
+	 删除一个团队中的一个用户
+	 yarn team ls <scope>|<scope:team>
+	 
+	 组织创建与团队成员管理是通过npm网站实现完成并不是cli命令
+	 通过赋予或收回适当的权限来控制用户的权限
+  25.yarn test
+	运行测试脚本
+	如果你的包有一个定义好的 scripts 对象，此命令将运行指定的 test 脚本
+	yarn test 是 yarn run test 命令的快捷方式
+  26.yarn unlink
+    移除先前创建的一个链接
+	yarn unlink
+	运行 yarn unlink 在文件夹中能够移除先前用于创建的一个连接
+	yarn unlink [package]
+  27.yarn upgrade
+	基于明确的范围内更新包到最新的版本，基于package.json,同时yarn.lock也会重新创建
+    yarn upgrade [package]
+	更新确定的包
+	yarn upgrade [package@version]
+	更新包的特定版本
+	yarn upgrade [package@tag]
+	更新包以包的特定tag
+	yarn upgrade [package] --ignore-engines
+	忽略engines check更新一个单独的包版本到最新的tag
+  28.yarn version
+	更新包的版本
+	yarn update 
+	更新package.json中的version号，通过使用一个交互式的session来提示你输入一个新的版本
+	若是在git仓库中运行yarn vesion,git tag会按照默认v0.0.0的格式创建，你也可以通过定制化git tag通过yarn config set,例如
+		改变git tag 前缀可以使用 version-tag-prefix ,命令如下 
+		yarn config set version-tag-prefix "v"
+		改变git message通过使用version-git-message %s是版本字符串
+		yarn config set version-git-message "v%s"
+		也可以通过version-git-sign来关闭或启用git tag
+		yarn config set version-git-sign false
+		也可以通过version-git-tag来关闭或开启git tagging完全展示
+		yarn config set version-git-tag true
+	yarn version --new-version <version> 创建一个特定的版本
+	yarn version --no-git-tag-version创建一个新版本不创建标签
+  29.yarn why
+   解释为什么安装了某个包
+    yarn why <query>
+    此命令用于确定某个包为什么会被安装，例如，哪些包依赖它，或者它是否在 package.json 清单中被标记为一个明确的依赖
+    查询参数
+	yarn why 强制必须出现的查询参数有：
+		包名（如上述实例）
+		包目录。例如 yarn why node_modules/once
+		包目录中的某个文件。例如 yarn why node_modules/once/once.js
+		文件路径也可以是绝对路径
+	
+	从npm迁移到yarn
+	命令对比
+	npm	                                  		Yarn
+	npm install	                        	yarn install
+    (N/A)							    	yarn install --flat
+	(N/A)									yarn install --har
+	(N/A)									yarn install --no-lockfile
+	(N/A)									yarn install --pure-lockfile
+	npm install [package]					(N/A)
+	npm install --save [package]			yarn add [package]
+	npm install --save-dev [package]		yarn add [package] [--dev/-D]
+	(N/A)									yarn add [package] [--peer/-P]
+	npm install --save-optional [package]	yarn add [package] [--optional/-O]
+	npm install --save-exact [package]		yarn add [package] [--exact/-E]
+	(N/A)									yarn add [package] [--tilde/-T]
+	npm install --global [package]			yarn global add [package]
+	npm rebuild								yarn install --force
+	npm uninstall [package]					(N/A)
+	npm uninstall --save [package]			yarn remove [package]
+	npm uninstall --save-dev [package]		yarn remove [package]
+	npm uninstall --save-optional [package]	yarn remove [package]
+	npm cache clean							yarn cache clean
+	rm -rf node_modules && npm install		yarn upgrade
+	
+	
+	  
+	  
+	  
+	  
+	  
+	  
+	  
+

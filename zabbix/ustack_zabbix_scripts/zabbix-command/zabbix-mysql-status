@@ -1,0 +1,16 @@
+#!/bin/env python
+import subprocess
+io="""mysql -e "show slave status\G" |awk '/Slave_IO_Running/{print $2}'"""
+sql="""mysql -e "show slave status\G" |awk '/Slave_SQL_Running/{print $2}'"""
+Behind="""mysql -e "show slave status\G"|awk '/Seconds_Behind_Master/{print $2}'"""
+if __name__ == "__main__":
+    IO=subprocess.Popen(io,shell=True,stdout=subprocess.PIPE)
+    SQL=subprocess.Popen(sql,shell=True,stdout=subprocess.PIPE)
+    BEHIND=subprocess.Popen(Behind,shell=True,stdout=subprocess.PIPE)
+    io_status=IO.stdout.read().strip()
+    sql_status=SQL.stdout.read().strip()
+    Behind_status=BEHIND.stdout.read().strip()
+    if io_status == "No" or sql_status == "No" or Behind_status == "NULL":
+        print 0
+    else:
+        print 1

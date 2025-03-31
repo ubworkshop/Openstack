@@ -1,0 +1,13 @@
+#!/bin/bash
+count=$1
+num=`lsof -nP -i :5672 | grep nova-cond | wc -l`
+if  [[ -n $count && $num -ge $count ]];then
+    /sbin/service openstack-nova-conductor stop >/dev/null 2>&1
+for var in $(ps -ef|grep nova-cond |awk '{print $2}'):
+do
+    kill -9 $var >/dev/null 2>&1
+done
+ /sbin/service openstack-nova-conductor restart >/dev/null 2>&1 && echo 0
+else
+    echo $num
+fi

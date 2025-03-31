@@ -1,0 +1,18 @@
+#!/bin/bash
+# wuxiaoliu
+array=($(top -b -n 1 -o '%MEM' | awk 'NR>7 && NR<13 {print $12}' | uniq))
+printf "{\n"
+printf '\t"data":[\n'
+for ((i=0;i<${#array[@]};i++))
+do
+        printf '\t\t{\n'
+        num=$(echo $((${#array[@]}-1)))
+        if [ "$i" == ${num} ];
+        then
+                printf "\t\t\t\"{#PROCNAME}\":\"${array[$i]}\"}\n"
+        else
+                printf "\t\t\t\"{#PROCNAME}\":\"${array[$i]}\"},\n"
+        fi
+done
+printf "\t]\n"
+printf "}\n"

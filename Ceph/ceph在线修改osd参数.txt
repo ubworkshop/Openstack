@@ -1,0 +1,30 @@
+ceph tell osd.* injectargs '--osd_recovery_max_active 5'
+ceph tell osd.* injectargs '--osd_recovery_threads 5'
+osd_max_backfills = 2 
+
+
+
+osd_max_backfills:默认值10
+
+osd_recovery_max_active：默认值15
+
+osd_recovery_max_single_start：默认值5
+
+
+
+在更换SATA盘时，限流建议值如下：
+
+osd_max_backfills:1
+
+osd_recovery_max_active：3
+
+osd_recovery_max_single_start：1
+
+
+磁盘满：
+ceph tell osd.* injectargs '--mon-osd-nearfull-ratio 0.90'
+ceph tell osd.* injectargs '--mon-osd-full-ratio 0.98'
+
+
+ceph pg set_full_ratio 0.98
+ceph pg set_nearfull_ratio 0.95

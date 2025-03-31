@@ -1,0 +1,60 @@
+#!/bin/bash
+##############################
+##  hardware mon for zabbix 
+##   written by zhangxian
+##   on 2016-02-13 20:00
+#############################
+ 
+if [ $# -ne 1 ];then
+  usage;
+fi
+hardware_device=$1
+hardware_cmd="python /usr/bin/zabbix-uos-hardinfo.py ${hardware_device}"
+hardware_ok_status="Ok"
+
+function usage(){
+  echo "Usage: sh $0 param"
+  echo "Param: cpu mem disk fans temp power"
+  echo "       cpu:     show the hardware device cpu status "
+  echo "       mem:     show the hardware device mem status "
+  echo "       disk:    show the hardware device disk status "
+  echo "       fans:    show the hardware device fans status "
+  echo "       temp:    show the hardware device temp status "
+  echo "       power:   show the hardware device power status "
+  echo "       help:    show the help usage of script "
+  echo "       version: show the version of script "
+  echo "Example: sh $0 mem"
+  echo "Written by Zhangxian"
+  exit 0;
+}
+
+function help(){
+  usage;
+}
+
+function version(){
+ echo "Version 2.0"
+}
+
+function hardware_check_device(){
+  local device=$1
+  local device_result=$(echo "${hardware_result}"|sed -n "/${device}/,/}/p")
+  if [ -z "${device_result}" ];then
+     echo "Error, the device result is null"
+     exit 1;
+  fi
+  local device_status=$(echo "${device_result}"|grep -w '"Status":'|awk -F: '{print $2}'|sed 's/"\|,//g'|sed 's/ //g')
+  if [ "${hardware_ok_status}" != "${device_status}" ];then
+    local device_detail=$(echo "${device_result}"|grep -oE "Details.*"|sed -e 's/"//g' -e 's/,//g')
+    echo "${device_detail}"
+  else
+   echo "${device_status}"
+  fi
+}
+
+hardware_result=$(${hardware_cmd} 2>/dev/null)
+case ${hardware_device} in
+  cpu|mem|disk|temp|fans|power) hardware_check_device ${hardware_device};;
+  *) usage;; 
+esac
+

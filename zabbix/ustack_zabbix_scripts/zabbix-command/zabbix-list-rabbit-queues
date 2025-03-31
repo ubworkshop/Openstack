@@ -1,0 +1,6 @@
+#!/bin/bash
+cd "$(dirname "$0")"
+USERNAME=openstack
+PASSWORD=abK1LZ8P1cbcpvL
+CONF=/etc/zabbix/zabbix_agent.conf
+zabbix-rabbitmq-api --username=$USERNAME --password=$PASSWORD --check=list_queues --filter="$FILTER" --conf=$CONF

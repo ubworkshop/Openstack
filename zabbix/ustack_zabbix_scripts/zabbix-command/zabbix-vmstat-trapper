@@ -1,0 +1,38 @@
+#!/usr/bin/env /usr/bin/python
+'''Python module to get vmload and get
+results that can then be used by Zabbix.'''
+import json
+import sys
+import optparse
+import socket
+import urllib2
+import subprocess
+import tempfile
+import os
+import commands
+import re
+
+
+def push_vmstat_status(zabbix_server, hostname):
+    status, data = commands.getstatusoutput('vmstat 3 2')
+    lines = data.split("\n")
+
+    x = 0
+    for line in lines:
+        x += 1
+        if x == 4:
+            vminfo = line.split()
+            senddata= [
+                    {"key": "si", "value": vminfo[6]},
+                    {"key": "so", "value": vminfo[7]}
+            ]
+            for send in senddata:
+		for zbxs in zabbix_server.split(','):
+                	sendcmd = "timeout 3 zabbix_sender -z %s -s %s -k \"system.load.vmstat[%s]\" -o %s" % (zbxs, hostname, send['key'], send['value'])
+                	status, data = commands.getstatusoutput(sendcmd)
+
+
+if __name__ == "__main__":
+    status, zabbix_server = commands.getstatusoutput('cat /etc/zabbix/zabbix_agentd.conf | grep Server= | cut -d "=" -f 2')
+    status, hostname= commands.getstatusoutput('hostname -f')
+    push_vmstat_status(zabbix_server, hostname)

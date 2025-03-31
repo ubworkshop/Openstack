@@ -1,0 +1,85 @@
+#!/bin/bash
+#####################################
+##     fd monitor for zabbix
+##      written by zhangxian
+##       on 2016-02-08 17:22
+####################################
+
+phy_fd_cmd="cat /proc/sys/fs/file-nr"
+vm_pid_list="pgrep -f qemu-kvm"
+
+function usage() {
+  echo "Usage: sh $0 param"
+  echo "       phy.fd.used.percent vm.fd.used.percent"
+  echo "       phy.fd.used.percent:  show the phy fd used percent(/proc/sys/fs/file-nr)"
+  echo "       vm.fd.used.percent:   show the vm fd used percent(/proc/pid/limits)"
+  echo "       version:              show the version"
+  echo "       help:                 show the help usage"
+  echo "Example: sh $0 phy.fd.used.percent "
+  echo "Written by Zhangxian"
+  exit 0;
+} 
+
+function help() {
+  usage;
+}
+
+function version(){
+  echo "Version 2.0"
+}
+
+function get_phy_data(){
+  phy_fd_data=$(${phy_fd_cmd} 2>/dev/null)
+  if [ $? -ne 0 ];then
+    echo "-1";
+    exit 1;
+  fi
+}
+
+function get_vm_data(){
+  vm_pid_data=$(${vm_pid_list} 2>/dev/null)
+  if [ $? -ne 0 ];then
+    echo "-1";
+    exit 1;
+  fi
+}
+
+function phy_fd_used_percent(){
+  if [ -z "${phy_fd_data}" ];then
+    echo "-1";
+  else
+    local fd_used=$(echo "${phy_fd_data}"|awk '{print $1}'|head -1)
+    local fd_total=$(echo "${phy_fd_data}"|awk '{print $3}'|head -1)
+    local fd_used_percent=$(echo "${fd_used} ${fd_total}"|awk '{if($2 == 0) print 0; else printf "%0.5f\n",$1*100/$2 }')  
+    echo ${fd_used_percent}; 
+  fi
+}
+
+function vm_fd_used_percent(){
+  local vm_fd_used_percent=0.0
+  if [ -z "${vm_pid_data}" ];then
+    echo "-1";
+  else
+    for pid in ${vm_pid_data}
+    do
+      pid_fd_total=$(cat /proc/${pid}/limits|grep files|awk '{print $4}')
+      pid_fd_used=$(ls /proc/${pid}/fd|wc -l)
+      pid_fd_used_percent=$(echo "${pid_fd_used} ${pid_fd_total}"|awk '{printf "%0.5f\n",$1*100/$2 }') 
+     if [ $(echo "${vm_fd_used_percent} < ${pid_fd_used_percent}"|bc) -eq 1 ];then
+	vm_fd_used_percent=${pid_fd_used_percent}
+     fi 
+    done
+    echo ${vm_fd_used_percent}; 
+  fi
+}
+
+if [ $# -ne 1 ];then
+  usage;
+fi
+
+case $1 in
+  phy.fd.used.percent) get_phy_data;phy_fd_used_percent;;
+  vm.fd.used.percent) get_vm_data;vm_fd_used_percent;;
+  version) version;;
+  *) usage;;
+esac

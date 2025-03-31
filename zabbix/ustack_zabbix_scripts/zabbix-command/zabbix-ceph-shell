@@ -1,0 +1,114 @@
+#!/bin/bash
+#by haoxiaoci 2017-08-09
+ceph_pool_ls='timeout 5 ceph osd pool ls'
+rados_df='timeout 3 rados df'
+
+
+function usage(){
+  echo "Usage: sh $0 param "
+  echo "Param: pool.num mon.status osd.status incons.num block.num"
+  echo -e "pool.num: \n\tshow the ceph pool's number"
+  echo -e "pool.objects poolname: \n\tshow the ceph pool's objects number"
+  echo -e "pool.utilization poolname: \n\tshow the pool's utilization"
+  echo -e "pool.pg poolname active/clean: \n\tshow the pool pg status active,clean"
+  echo -e "pool.dirtypg poolname: \n\tshow the pool dirty pg number"
+  echo -e "pool.config poolname size/min_size/pg_num/pgp_num: \n\tshow the pool size,min_size,pg_num,pgp_num"
+  echo -e "help: \n\tshow the usage"
+  echo "Example: sh $0 pool.config poolname size"
+  exit 0;
+}
+
+
+function help(){
+  usage;
+}
+
+
+function get_data() {
+  arg1=$@
+  pool_result=$(${arg1} 2>/dev/null)
+  if [ $? -ne 0 ];then
+    echo "command error"
+    exit 1;
+  fi
+}
+
+
+function data_output() {
+  if [  "$1" ];then
+      echo "$1"
+  else
+      echo "0"
+  fi
+
+}
+
+
+function ceph_pool_objects() {
+  pool="$1"
+  local pool_objects=$(echo "${pool_result}"|grep "$pool" |awk '{print $3}')
+  data_output $pool_objects
+}
+
+
+function ceph_pool_config() {
+  local pool_config=$(echo "${pool_result}"|awk '{print $2}')
+  data_output $pool_config
+}
+
+
+function ceph_pool_num() {
+  local pool_num=$(echo "${pool_result}"|wc -l)
+  data_output $pool_num
+}
+
+
+function ceph_pool_utilization() {
+  pool="$1"
+  local pool_utilization=$(echo "${pool_result}"|grep "$pool"|awk '{print $4}')
+  data_output $pool_utilization
+}
+
+
+function ceph_pool_dirtypg() {
+  pool="$1"
+  arg1="timeout 3 ceph osd pool get $pool pg_num"
+  get_data $arg1
+  pg=`ceph_pool_config $(get_data $arg1)`
+  arg2="timeout 3 ceph pg ls-by-pool $pool active"
+  get_data $arg2
+  active=`ceph_pool_pg`
+   if [  "${pg}" ] && [  "${active}" ];then
+       echo "$((pg - active))"
+   else
+       echo "0"
+   fi
+}
+
+
+function ceph_pool_pg() {
+  local pool_pg=$(echo "${pool_result}"|sed -e '1d'|wc -l)
+  data_output $pool_pg
+}
+
+
+while [ "x$1" != "x" ]; do
+  case "$1" in
+    pool.num) get_data $ceph_pool_ls;ceph_pool_num;;
+    pool.objects)
+        pool="$2";
+        if [ "$pool" ];then get_data $rados_df;ceph_pool_objects $pool; else usage; fi;;
+    pool.utilization)
+        pool="$2";
+        if [ "$pool" ];then get_data "timeout 3 ceph df";ceph_pool_utilization $pool;else usage; fi;;
+    pool.dirtypg)
+        pool="$2";
+        if [ "$pool" ];then ceph_pool_dirtypg $pool;else usage; fi;;
+    pool.pg)
+        if [ "$2" ] && [ "$3" ];then arg="timeout 3 ceph pg ls-by-pool $2 $3";get_data $arg;ceph_pool_pg;else usage; fi;;
+    pool.config)
+        if [ "$2" ] && [ "$3" ];then arg="timeout 3 ceph osd pool get $2 $3";get_data $arg;ceph_pool_config; else usage; fi;;
+    *) usage;;
+  esac
+  break
+done

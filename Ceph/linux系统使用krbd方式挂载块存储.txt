@@ -1,0 +1,15 @@
+1、创建块
+#rbd create rbd/test1 --size 10G --image-format 2 --image-feature layering
+
+2、映射到linux系统
+#rbd map rbd/test1
+
+3、格式化磁盘
+# mkfs.ext4 /dev/rbd0
+
+4、创建挂载目录
+#mkdir /data
+
+5、挂载磁盘分区
+#mount /dev/rbd0 /data
+

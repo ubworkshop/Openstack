@@ -1,0 +1,89 @@
+#!/bin/env python
+# coding=utf-8
+import yaml
+import sys
+import json
+import os
+
+__author__ = 'xuchangbao'
+
+
+storage_net = {
+    "lxyzj":  "17",
+    "gshx": "243"
+}
+
+
+def ip_analysis_list(ips):
+    ip_lists = []
+    ip_group = ips.split(".")
+    ip_start = ".".join(ip_group[:3])+"."
+    ip_ends = ip_group[3].strip("[]").split(",")
+
+    for i in ip_ends:
+        if "-" in i:
+            num_start = int(i.split("-")[0])
+            num_end = int(i.split("-")[1]) + 1
+            ip_list = [ip_start + str(i) for i in range(num_start, num_end)]
+            ip_lists.extend(ip_list)
+        else:
+            ip_lists.append(ip_start + i)
+    return ip_lists
+
+
+def ip_analysis_json(ips_dict, region):
+    # {"role-a":["10.10.10.10","10.10.10.10"],"role-b":["10.10.10.10"]}
+
+    group_ips = []
+
+    for role, ips in ips_dict.items():
+        for ip in ips:
+            ip_dict = {}
+            TAG = region + "_" + role + "_" + ip.split(".")[3]
+            management_ip = ip
+
+            if role == "comp":
+                storage_ip = ip.split('.')
+
+                if region in storage_net.keys():
+                    storage_ip[2] = storage_net[region]
+                else:
+                    storage_ip[2] = "16"
+
+                storage_ip = ".".join(storage_ip)
+                data_ip = ip.split('.')
+                data_ip[2] = "24"
+                data_ip = ".".join(data_ip)
+                ip_dict = {
+                    "{#TAG}": TAG,
+                    "{#MANAGEMENT_IP}": ip,
+                    "{#STORAGE_IP}": storage_ip,
+                    "{#DATA_IP}": data_ip
+                }
+            else:
+                ip_dict = {
+                     "{#TAG}": TAG,
+                     "{#MANAGEMENT_IP}": management_ip,
+                }
+            group_ips.append(ip_dict)
+    return json.dumps({"data": group_ips}, indent=4)
+
+if __name__ == '__main__':
+
+    if len(sys.argv) == 1:
+        exit()
+
+    roles = sys.argv[1:]
+    region = os.popen("hostname -f").read().split(".")[2]
+    with open("/etc/zabbix/groups.yaml") as gs:
+        group_dict = yaml.load(gs)
+        gs.close()
+
+    ips_dict = {}
+
+    for role in roles:
+        group_list = group_dict[region + "_" + role]
+        ip_list = ip_analysis_list(group_list)
+        ips_dict.update({role: ip_list})
+
+    print ip_analysis_json(ips_dict, region=region)

@@ -1,0 +1,80 @@
+#!/bin/bash
+#####################################
+##      pcs status for zabbix
+##      written by zhangxian
+##       on 2016-02-08 17:22
+####################################
+
+ 
+pcs_status_cmd="pcs status"
+pcs_end="Clone Set"
+
+function usage() {
+  echo "Usage: sh $0 param"
+  echo "       param       show the proc staus with pcs,the param you can use:openstack-cinder-api(scheduler/volume)"
+  echo "                    p_vip p_haproxy p_mysql corosync/pacemaker/pcsd"
+  echo "       version:     show the version"
+  echo "       help:        show the help usage"
+  echo "Example: sh $0 openstack-cinder-api "
+  echo "Written by Zhangxian"
+  exit 0;
+} 
+
+function help() {
+  usage;
+}
+
+function version(){
+  echo "Version 2.0"
+}
+
+function get_proc_data(){
+  pcs_status_data=$(${pcs_status_cmd} 2>/dev/null)
+  #pcs_status_data=$(cat pcs_status)
+  if [ $? -ne 0 ];then
+    echo "-1";
+    exit 1;
+  fi
+}
+
+function get_proc_service(){
+  if [ -z "${pcs_status_data}" ];then
+    echo "-1";
+  else
+    local proc=$1
+    local stopped_proc_num=$(echo "${pcs_status_data}"|sed -n "/${proc}/,/${pcs_end}/p"|grep -w "Stopped:"|wc|awk '{print $2}') 
+    local failed_proc_num=$(echo "${pcs_status_data}"|sed -n "/${proc}/,/${pcs_end}/p"|grep -oE "FAILED.*"|wc|awk '{print $2}') 
+    if [ ${stopped_proc_num} -ne 0 ];then
+      stop_proc_num=$((${stopped_proc_num}-3))
+      echo "${stop_proc_num}"
+    elif [ ${failed_proc_num} -ne 0 ];then
+      fail_proc_num=$((${failed_proc_num}-2))
+      echo "${fail_proc_num}"
+    else
+      echo 0;
+    fi
+  fi
+}
+
+
+function get_pcs_service(){
+  if [ -z "${pcs_status_data}" ];then
+    echo "-1";
+  else
+    local proc=$1
+    local proc_num=$(echo "${pcs_status_data}"|sed -n "/${proc}/p"|grep "${proc}"|grep -wc "active/enabled") 
+    echo ${proc_num}
+  fi
+}
+
+if [ $# -ne 1 ];then
+  usage;
+fi
+
+proc_name=$1
+case ${proc_name} in
+  openstack-cinder-api|openstack-cinder-scheduler|openstack-cinder-volume|p_vip|p_mysql|p_haproxy) get_proc_data;get_proc_service ${proc_name};;
+  corosync|pacemaker|pcsd) get_proc_data;get_pcs_service ${proc_name};;
+  version) version;;
+  *) usage;;
+esac

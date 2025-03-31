@@ -1,0 +1,18 @@
+#!/bin/bash
+# wuxiaoliu
+array=($(cat /proc/mounts | grep osd | awk '{print $2}' | awk -F 'osd/' '{print $2}'))
+printf "{\n"
+printf '\t"data":[\n'
+for ((i=0;i<${#array[@]};i++))
+do
+        printf '\t\t{\n'
+        num=$(echo $((${#array[@]}-1)))
+        if [ "$i" == ${num} ];
+        then
+                printf "\t\t\t\"{#OSDNAME}\":\"${array[$i]}\"}\n"
+        else
+                printf "\t\t\t\"{#OSDNAME}\":\"${array[$i]}\"},\n"
+        fi
+done
+printf "\t]\n"
+printf "}\n"

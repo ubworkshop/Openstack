@@ -1,0 +1,13 @@
+
+从ceph的pool中导出块文件
+
+#rbd export -p pool名字 块名字 保存路径
+
+如：
+#rbd export -p vms bf92c8b6-aae8-4b85-b601-1b8bad83ad0b_disk CentOS-6.7-x86_64.raw
+
+压缩，从raw格式转换为qcow2格式
+#virt-sparsify --convert qcow2 --compress 源文件.raw 目标文件.qcow2
+
+如：
+virt-sparsify --convert qcow2 --compress CentOS-6.7-x86_64.raw CentOS-6.7-x86_64.qcow2

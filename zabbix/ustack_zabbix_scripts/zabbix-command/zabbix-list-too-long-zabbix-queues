@@ -1,0 +1,53 @@
+#!/bin/env python
+import subprocess
+import os,sys
+import commands
+import re
+one=sys.argv[1]
+two=sys.argv[2]
+three=sys.argv[3]
+"""
+if len(sys.argv) != 2:
+    print "Invalid parameter"
+    sys.exit()
+"""
+def rabbitmq_queue(one,two,three):
+    rabbitmq="rabbitmqctl list_queues messages name | sed '1d' | sed '$d' | grep -v '^0'"
+    USERNAME="rabbitmq_read"
+    PASSWORD="Z0VFOiTQ4uYrbXqFB8c1"
+    rabbitmq_list=subprocess.Popen(rabbitmq,shell=True, stdout=subprocess.PIPE)
+    for ra in rabbitmq_list.stdout.readlines():
+        rabbit=ra.strip()
+        rabbit_1=rabbit.split()[0]
+        rabbit_2=rabbit.split()[1]
+        if (rabbit_2 == "notifications.error" and int(rabbit_1) > int(two)) or ("guestagent" in rabbit_2 and int(rabbit_1) > int(three)):
+            status,output=commands.getstatusoutput("/usr/local/bin/rabbitmqadmin --username=%s --password=%s purge queue name=%s"%(USERNAME,PASSWORD,rabbit_2))
+            if status != 0:
+                print -1
+                sys.exit()
+            else:
+                print 0
+                sys.exit()
+        elif int(rabbit_1) > int(one):
+            print rabbit_1
+            sys.exit()
+    print 1
+def rabbitmq_false(One):
+    rabbitmqctl="rabbitmqctl list_channels pid client_flow_blocked name |grep %s"%One
+    rabbitmq_num="rabbitmqctl list_channels pid client_flow_blocked name |grep %s |wc -l"%One
+    rabbitmqctl_list=subprocess.Popen(rabbitmqctl,shell=True, stdout=subprocess.PIPE)
+    status,output=commands.getstatusoutput(rabbitmq_num)
+    if status != 0 or output == "0":
+        print 0
+        sys.exit()
+    for rab in rabbitmqctl_list.stout.readlines():
+        if rab.split()[1] == "true":
+            server=re.split("'|@",rab)[2]
+            ip_t=rab.split()[-3:]
+            print server+" "+''.join(ip_t)
+            sys.exit()
+if __name__ == "__main__":
+    if one == "true":
+        rabbitmq_false(one)
+    else:
+        rabbitmq_queue(one,two,three)

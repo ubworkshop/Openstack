@@ -1,0 +1,6 @@
+ - power_state_change
+power_state:
+   delay: "now"
+   mode: reboot
+   timeout: 1
+   condition: True

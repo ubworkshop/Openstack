@@ -1,0 +1,7 @@
+From tomcat:8.5.24-jre8-alpine
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+RUN echo "Asia/Shanghai" > /etc/timezone
+ARG WEBROOT_PATH=/usr/local/tomcat/webapps/
+RUN rm -rf /usr/local/tomcat/webapps/*
+ADD quhuhu-api/target/quhuhu-api-production.war /usr/local/tomcat/webapps/
+RUN mv ${WEBROOT_PATH}/quhuhu-api-production.war ${WEBROOT_PATH}/ROOT.war

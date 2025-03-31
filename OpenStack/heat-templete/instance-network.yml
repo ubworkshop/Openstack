@@ -1,0 +1,26 @@
+heat_template_version: 2015-10-15
+description: instance-network(创建一个网络端口，绑定到指定实例)
+
+resources:
+    instance_port:
+        type: OS::Neutron::Port
+        properties:
+          network: public
+          fixed_ips:
+            - subnet_id: "c2fcc191-c8e9-48cd-912a-df3f5ea75b72"
+
+    instance1:
+        type: OS::Nova::Server
+        properties:
+          flavor: m1.small
+          image: CentOS-7.0-x86_64.qcow2-swift
+          networks:
+            - port: { get_resource: instance_port }
+
+    instance2:
+        type: OS::Nova::Server
+        properties:
+          flavor: m1.small
+          image: Ubuntu-12_x86_64-swift
+          networks:
+            - network: test

@@ -1,0 +1,19 @@
+#!/bin/bash
+#
+#
+#
+
+[[ $1 ]] || { echo 'Usage: $0 {eth0 | eth1 | .. }' ; exit 0 ; }
+
+DEV_IRQ_NUMBER=$(cat /proc/interrupts|egrep 'rx|tx|TxRx' |grep $1|cut -d: -f1|xargs -l)
+
+[[ -z $DEV_IRQ_NUMBER ]]  &&  { echo 2 ; exit ; }
+
+for i in $DEV_IRQ_NUMBER
+do
+
+    egrep -q  ',|-' /proc/irq/$i/smp_affinity_list  &&  { echo 0 ; exit ; }
+
+done
+
+echo 1

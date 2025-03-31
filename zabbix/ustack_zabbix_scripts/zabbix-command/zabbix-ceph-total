@@ -1,0 +1,18 @@
+#!/usr/bin/python
+import commands
+import json
+import sys
+
+option = sys.argv[1]
+
+if __name__ == '__main__':
+    status, output = commands.getstatusoutput("ceph df -f json")
+    ceph_df = json.loads(output)
+    stats = ceph_df['stats']
+    if option in ["total_space", "total_used", "total_avail"]:
+        # the unit is KB
+        print stats[option]
+    elif option == "used_percent":
+        print int(stats['total_used'])*100/int(stats['total_space'])
+    else:
+        print 0

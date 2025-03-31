@@ -1,0 +1,28 @@
+heat_template_version: 2015-10-15
+description: Create and associate a floating IP to an instance2
+
+parameters:
+  net:
+    description: name of network used to launch instance.
+    type: string
+    default: test
+
+resources:
+  inst1:
+    type: OS::Nova::Server
+    properties:
+      flavor: m1.small
+      image: CentOS-7.0-x86_64.qcow2-swift
+      networks:
+        - network: {get_param: net}
+
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: public
+
+  association:
+    type: OS::Neutron::FloatingIPAssociation
+    properties:
+      floatingip_id: { get_resource: floating_ip }
+      port_id: {get_attr: [inst1, addresses, {get_param: net}, 0, port]}

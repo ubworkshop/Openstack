@@ -1,0 +1,10 @@
+É¾³ý¾µÏñ
+
+glance image-list
+
+rbd -p image snap unprotect pool_name/ae621fa7-d115-45f0-8786-a63bf6adc12b@snap
+rbd -p image snap rm pool_name/ae621fa7-d115-45f0-8786-a63bf6adc12b@snap
+glance image-delete ae621fa7-d115-45f0-8786-a63bf6adc12b
+
+¾µÏñ¸ñÊ½×ª»»
+qemu-img convert -f raw -O qcow2 /var/test.raw /var/test.qcow2 

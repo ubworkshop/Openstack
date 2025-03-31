@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [[ $1 == "Unsed" ]]; then
+    source /root/openrc
+    neutron uos-get-fip-usage | grep Unsed | awk '{print $2}'
+elif [[ $1 == "Used" ]]; then
+    source /root/openrc
+    neutron uos-get-fip-usage | grep Used | awk '{print $2}'
+fi

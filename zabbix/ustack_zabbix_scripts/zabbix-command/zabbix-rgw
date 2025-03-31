@@ -1,0 +1,78 @@
+#!/bin/bash
+#wuxiaoliu
+myname=`hostname`
+
+if
+radosgw-admin metadata list user | grep $myname
+then
+ echo >>/dev/null
+else
+ #create user
+ radosgw-admin user create --uid=$myname --display-name="$myname" >> /dev/null
+ if [ $? == 0 ]; then
+  echo >>/dev/null
+ else
+  echo "400"
+  exit 0
+ fi
+fi
+
+
+#get user info
+radosgw-admin user info --uid="$myname" >>/dev/null
+if [ $? == 0 ]; then
+ echo >>/dev/null
+else
+ echo "408"
+ exit 0
+fi
+
+
+#create user key
+radosgw-admin key create --uid="$myname" --key-type=s3 --gen-secret  --gen-access-key >>/dev/null
+if [ $? == 0 ]; then
+ echo >>/dev/null
+else
+ echo "400"
+ exit 0
+fi
+
+
+#get quota info
+radosgw-admin user info --uid="$myname" >>/dev/null
+if [ $? == 0 ]; then
+ echo >>/dev/null
+else
+ echo "400"
+ exit 0
+fi
+
+
+#set quota
+radosgw-admin quota set --quota-scope=user --uid="$myname" --max-objects=1024 --max-size=1024 >>/dev/null
+if [ $? == 0 ]; then
+ echo >>/dev/null
+else
+ echo "400"
+ exit 0
+fi
+
+
+#get bucket list
+radosgw-admin bucket list >>/dev/null
+if [ $? == 0 ]; then
+ echo >>/dev/null
+else
+ echo "400"
+ exit 0
+fi
+
+
+#delete user zabbix
+radosgw-admin user rm --uid=$myname --display-name="$myname"
+if [ $? == 0 ]; then
+ echo "200"
+else
+ echo "400"
+ exit 0
+fi

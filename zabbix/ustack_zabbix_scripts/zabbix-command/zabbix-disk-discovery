@@ -1,0 +1,16 @@
+#!/usr/bin/python
+import os
+import json
+import sys
+
+param = sys.argv[1]
+
+if __name__ == "__main__":
+    data = []
+    disks = os.popen("ls -l /dev/[sv]d* | awk '{print $NF}' | sed 's/[0-9]//g' | uniq").readlines()
+    for disk in disks:
+        diskname = disk.strip('\n')
+        diskshortname = diskname[5:]
+        data.append({"{#DISKNAME}": diskname, "{#SHORTDISKNAME}": diskshortname})
+    output = {"data": data}
+    print json.dumps(output)
