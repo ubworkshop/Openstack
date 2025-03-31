@@ -1,0 +1,24 @@
+
+ ceph-deploy disk zap compute1:/dev/sda:/dev/sde
+
+ceph-deploy osd prepare compute1:/dev/sda:/dev/sde
+ceph-deploy osd prepare compute1:/dev/sdb:/dev/sde
+ceph-deploy osd prepare compute1:/dev/sdc:/dev/sdf
+ceph-deploy osd prepare compute1:/dev/sdd:/dev/sdf
+
+
+ceph-deploy osd prepare compute2:/dev/sda:/dev/sde
+ceph-deploy osd prepare compute2:/dev/sdb:/dev/sde
+ceph-deploy osd prepare compute2:/dev/sdc:/dev/sdf
+ceph-deploy osd prepare compute2:/dev/sdd:/dev/sdf
+
+
+ceph-deploy osd prepare compute3:/dev/sda:/dev/sde
+ceph-deploy osd prepare compute3:/dev/sdb:/dev/sde
+ceph-deploy osd prepare compute3:/dev/sdc:/dev/sdf
+ceph-deploy osd prepare compute3:/dev/sdd:/dev/sdf
+
+
+
+
+ceph-deploy osd activate compute1:/dev/sdb:/dev/sde
